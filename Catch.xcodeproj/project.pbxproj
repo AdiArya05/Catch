@@ -1,0 +1,759 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000010000000000000001 /* CatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000001 /* CatchApp.swift */; };
+		A10000010000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000002 /* ContentView.swift */; };
+		A10000010000000000000003 /* BusModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000003 /* BusModels.swift */; };
+		A10000010000000000000004 /* LTAService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000004 /* LTAService.swift */; };
+		A10000010000000000000005 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000005 /* LocationManager.swift */; };
+		A10000010000000000000006 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000006 /* AppState.swift */; };
+		A10000010000000000000007 /* BusStopDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000007 /* BusStopDetailView.swift */; };
+		A10000010000000000000008 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000008 /* SearchView.swift */; };
+		A10000010000000000000009 /* AddLocationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000009 /* AddLocationView.swift */; };
+		A10000010000000000000010 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000010 /* SettingsView.swift */; };
+		A10000010000000000000011 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000011 /* Assets.xcassets */; };
+		A10000010000000000000012 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000012 /* Preview Assets.xcassets */; };
+		A10000010000000000000013 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000014 /* OnboardingView.swift */; };
+		A10000010000000000000015 /* OpenAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000015 /* OpenAIService.swift */; };
+		A10000010000000000000016 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000016 /* ProfileView.swift */; };
+		A10000010000000000000023 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000023 /* Haptics.swift */; };
+		A10000010000000000000024 /* ProPaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000024 /* ProPaywallView.swift */; };
+		D10000010000000000000001 /* CatchWidgetData.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000010000000000000001 /* CatchWidgetData.swift */; };
+		D10000010000000000000002 /* CatchWidgetData.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000010000000000000001 /* CatchWidgetData.swift */; };
+		D10000010000000000000003 /* CatchWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000010000000000000002 /* CatchWidgets.swift */; };
+		D10000010000000000000004 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D20000010000000000000005 /* Assets.xcassets */; };
+		D10000010000000000000005 /* CatchWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = D30000010000000000000001 /* CatchWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		C10000010000000000000001 /* CatchStopActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000010000000000000001 /* CatchStopActivityAttributes.swift */; };
+		C10000010000000000000002 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000010000000000000002 /* LiveActivityManager.swift */; };
+		C10000010000000000000003 /* CatchLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000010000000000000003 /* CatchLiveActivity.swift */; };
+		C10000010000000000000004 /* CatchStopActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000010000000000000001 /* CatchStopActivityAttributes.swift */; };
+		C10000010000000000000005 /* CatchLiveActivity.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = C30000010000000000000001 /* CatchLiveActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C11000010000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A90000010000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C60000010000000000000001;
+			remoteInfo = CatchLiveActivity;
+		};
+		D11000010000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A90000010000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D60000010000000000000001;
+			remoteInfo = CatchWidgets;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C12000010000000000000001 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				C10000010000000000000005 /* CatchLiveActivity.appex in Embed App Extensions */,
+				D10000010000000000000005 /* CatchWidgets.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		A20000010000000000000001 /* CatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatchApp.swift; sourceTree = "<group>"; };
+		A20000010000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A20000010000000000000003 /* BusModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusModels.swift; sourceTree = "<group>"; };
+		A20000010000000000000004 /* LTAService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LTAService.swift; sourceTree = "<group>"; };
+		A20000010000000000000005 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
+		A20000010000000000000006 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		A20000010000000000000007 /* BusStopDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusStopDetailView.swift; sourceTree = "<group>"; };
+		A20000010000000000000008 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
+		A20000010000000000000009 /* AddLocationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddLocationView.swift; sourceTree = "<group>"; };
+		A20000010000000000000010 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A20000010000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A20000010000000000000012 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		A20000010000000000000013 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A20000010000000000000014 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		A20000010000000000000015 /* OpenAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIService.swift; sourceTree = "<group>"; };
+		A20000010000000000000016 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		A20000010000000000000023 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
+		A20000010000000000000024 /* ProPaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProPaywallView.swift; sourceTree = "<group>"; };
+		D20000010000000000000001 /* CatchWidgetData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatchWidgetData.swift; sourceTree = "<group>"; };
+		D20000010000000000000002 /* CatchWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatchWidgets.swift; sourceTree = "<group>"; };
+		D20000010000000000000003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D20000010000000000000004 /* CatchWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CatchWidgets.entitlements; sourceTree = "<group>"; };
+		D20000010000000000000005 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D20000010000000000000006 /* Catch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Catch.entitlements; sourceTree = "<group>"; };
+		A30000010000000000000001 /* Catch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Catch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C20000010000000000000001 /* CatchStopActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatchStopActivityAttributes.swift; sourceTree = "<group>"; };
+		C20000010000000000000002 /* LiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityManager.swift; sourceTree = "<group>"; };
+		C20000010000000000000003 /* CatchLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatchLiveActivity.swift; sourceTree = "<group>"; };
+		C20000010000000000000004 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		C30000010000000000000001 /* CatchLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CatchLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		D30000010000000000000001 /* CatchWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CatchWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A40000010000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C40000010000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D40000010000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A50000010000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				A50000010000000000000002 /* Catch */,
+				C50000010000000000000001 /* CatchLiveActivity */,
+				D50000010000000000000001 /* CatchWidgets */,
+				A50000010000000000000006 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A50000010000000000000002 /* Catch */ = {
+			isa = PBXGroup;
+			children = (
+				A20000010000000000000001 /* CatchApp.swift */,
+				A20000010000000000000013 /* Info.plist */,
+				D20000010000000000000006 /* Catch.entitlements */,
+				A50000010000000000000003 /* Models */,
+				A50000010000000000000004 /* Views */,
+				A50000010000000000000005 /* Services */,
+				A20000010000000000000011 /* Assets.xcassets */,
+				A50000010000000000000007 /* Preview Content */,
+			);
+			path = Catch;
+			sourceTree = "<group>";
+		};
+		A50000010000000000000003 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A20000010000000000000003 /* BusModels.swift */,
+				C20000010000000000000001 /* CatchStopActivityAttributes.swift */,
+				D20000010000000000000001 /* CatchWidgetData.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A50000010000000000000004 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A20000010000000000000002 /* ContentView.swift */,
+				A20000010000000000000007 /* BusStopDetailView.swift */,
+				A20000010000000000000008 /* SearchView.swift */,
+				A20000010000000000000009 /* AddLocationView.swift */,
+				A20000010000000000000010 /* SettingsView.swift */,
+				A20000010000000000000014 /* OnboardingView.swift */,
+				A20000010000000000000016 /* ProfileView.swift */,
+				A20000010000000000000024 /* ProPaywallView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		A50000010000000000000005 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A20000010000000000000004 /* LTAService.swift */,
+				A20000010000000000000005 /* LocationManager.swift */,
+				A20000010000000000000006 /* AppState.swift */,
+				A20000010000000000000015 /* OpenAIService.swift */,
+				A20000010000000000000023 /* Haptics.swift */,
+				C20000010000000000000002 /* LiveActivityManager.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		A50000010000000000000006 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A30000010000000000000001 /* Catch.app */,
+				C30000010000000000000001 /* CatchLiveActivity.appex */,
+				D30000010000000000000001 /* CatchWidgets.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A50000010000000000000007 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				A20000010000000000000012 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		C50000010000000000000001 /* CatchLiveActivity */ = {
+			isa = PBXGroup;
+			children = (
+				C20000010000000000000003 /* CatchLiveActivity.swift */,
+				C20000010000000000000004 /* Info.plist */,
+			);
+			path = CatchLiveActivity;
+			sourceTree = "<group>";
+		};
+		D50000010000000000000001 /* CatchWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				D20000010000000000000002 /* CatchWidgets.swift */,
+				D20000010000000000000003 /* Info.plist */,
+				D20000010000000000000004 /* CatchWidgets.entitlements */,
+				D20000010000000000000005 /* Assets.xcassets */,
+			);
+			path = CatchWidgets;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A60000010000000000000001 /* Catch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A80000010000000000000003 /* Build configuration list for PBXNativeTarget "Catch" */;
+			buildPhases = (
+				A70000010000000000000001 /* Sources */,
+				A40000010000000000000001 /* Frameworks */,
+				A70000010000000000000002 /* Resources */,
+				C12000010000000000000001 /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C13000010000000000000001 /* PBXTargetDependency */,
+				D13000010000000000000001 /* PBXTargetDependency */,
+			);
+			name = Catch;
+			productName = Catch;
+			productReference = A30000010000000000000001 /* Catch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		C60000010000000000000001 /* CatchLiveActivity */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C80000010000000000000001 /* Build configuration list for PBXNativeTarget "CatchLiveActivity" */;
+			buildPhases = (
+				C70000010000000000000001 /* Sources */,
+				C40000010000000000000001 /* Frameworks */,
+				C70000010000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CatchLiveActivity;
+			productName = CatchLiveActivity;
+			productReference = C30000010000000000000001 /* CatchLiveActivity.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		D60000010000000000000001 /* CatchWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D80000010000000000000001 /* Build configuration list for PBXNativeTarget "CatchWidgets" */;
+			buildPhases = (
+				D70000010000000000000001 /* Sources */,
+				D40000010000000000000001 /* Frameworks */,
+				D70000010000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CatchWidgets;
+			productName = CatchWidgets;
+			productReference = D30000010000000000000001 /* CatchWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A90000010000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1540;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					A60000010000000000000001 = {
+						CreatedOnToolsVersion = 15.4;
+					};
+					C60000010000000000000001 = {
+						CreatedOnToolsVersion = 15.4;
+					};
+					D60000010000000000000001 = {
+						CreatedOnToolsVersion = 15.4;
+					};
+				};
+			};
+			buildConfigurationList = A80000010000000000000001 /* Build configuration list for PBXProject "Catch" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A50000010000000000000001;
+			productRefGroup = A50000010000000000000006 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A60000010000000000000001 /* Catch */,
+				C60000010000000000000001 /* CatchLiveActivity */,
+				D60000010000000000000001 /* CatchWidgets */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A70000010000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000010000000000000011 /* Assets.xcassets in Resources */,
+				A10000010000000000000012 /* Preview Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C70000010000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D70000010000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D10000010000000000000004 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A70000010000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000010000000000000001 /* CatchApp.swift in Sources */,
+				A10000010000000000000002 /* ContentView.swift in Sources */,
+				A10000010000000000000003 /* BusModels.swift in Sources */,
+				C10000010000000000000001 /* CatchStopActivityAttributes.swift in Sources */,
+				A10000010000000000000004 /* LTAService.swift in Sources */,
+				A10000010000000000000005 /* LocationManager.swift in Sources */,
+				A10000010000000000000006 /* AppState.swift in Sources */,
+				C10000010000000000000002 /* LiveActivityManager.swift in Sources */,
+				A10000010000000000000007 /* BusStopDetailView.swift in Sources */,
+				A10000010000000000000008 /* SearchView.swift in Sources */,
+				A10000010000000000000009 /* AddLocationView.swift in Sources */,
+				A10000010000000000000010 /* SettingsView.swift in Sources */,
+				A10000010000000000000013 /* OnboardingView.swift in Sources */,
+				A10000010000000000000015 /* OpenAIService.swift in Sources */,
+				A10000010000000000000023 /* Haptics.swift in Sources */,
+				A10000010000000000000016 /* ProfileView.swift in Sources */,
+				A10000010000000000000024 /* ProPaywallView.swift in Sources */,
+				D10000010000000000000001 /* CatchWidgetData.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C70000010000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C10000010000000000000003 /* CatchLiveActivity.swift in Sources */,
+				C10000010000000000000004 /* CatchStopActivityAttributes.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D70000010000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D10000010000000000000003 /* CatchWidgets.swift in Sources */,
+				D10000010000000000000002 /* CatchWidgetData.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C13000010000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C60000010000000000000001 /* CatchLiveActivity */;
+			targetProxy = C11000010000000000000001 /* PBXContainerItemProxy */;
+		};
+		D13000010000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D60000010000000000000001 /* CatchWidgets */;
+			targetProxy = D11000010000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		B10000010000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		B10000010000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		B10000010000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "CatchMonochrome CatchWhiteBlack CatchCoral CatchChromatic CatchBlueVintage CatchOrangeVintage CatchDiscomorphism";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Catch/Catch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Catch/Preview Content\"";
+				DEVELOPMENT_TEAM = 56N7X7AGCM;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Catch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Catch;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.travel";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.adityaarya.catch;
+				PRODUCT_NAME = Catch;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B10000010000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "CatchMonochrome CatchWhiteBlack CatchCoral CatchChromatic CatchBlueVintage CatchOrangeVintage CatchDiscomorphism";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Catch/Catch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Catch/Preview Content\"";
+				DEVELOPMENT_TEAM = 56N7X7AGCM;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Catch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Catch;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.travel";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.adityaarya.catch;
+				PRODUCT_NAME = Catch;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		C90000010000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 56N7X7AGCM;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CatchLiveActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.adityaarya.catch.CatchLiveActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C90000010000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 56N7X7AGCM;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CatchLiveActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.adityaarya.catch.CatchLiveActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		D90000010000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_ENTITLEMENTS = CatchWidgets/CatchWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 56N7X7AGCM;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CatchWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.adityaarya.catch.CatchWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D90000010000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_ENTITLEMENTS = CatchWidgets/CatchWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 56N7X7AGCM;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CatchWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.adityaarya.catch.CatchWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A80000010000000000000001 /* Build configuration list for PBXProject "Catch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B10000010000000000000001 /* Debug */,
+				B10000010000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A80000010000000000000003 /* Build configuration list for PBXNativeTarget "Catch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B10000010000000000000003 /* Debug */,
+				B10000010000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C80000010000000000000001 /* Build configuration list for PBXNativeTarget "CatchLiveActivity" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C90000010000000000000001 /* Debug */,
+				C90000010000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D80000010000000000000001 /* Build configuration list for PBXNativeTarget "CatchWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D90000010000000000000001 /* Debug */,
+				D90000010000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A90000010000000000000001 /* Project object */;
+}

@@ -1,0 +1,86 @@
+{
+  "identifier" : "Catch.storekit",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "catch-pro",
+      "localizations" : [
+        {
+          "description" : "Unlock smart alerts, Live Board, route memory, saved places, and app icons.",
+          "displayName" : "Catch Pro",
+          "locale" : "en_US"
+        }
+      ],
+      "name" : "Catch Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "1.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "catch-pro-monthly",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Monthly subscription to Catch",
+              "displayName" : "Catch Pro Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.adityaarya.catch.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Catch Pro Monthly",
+          "subscriptionGroupID" : "catch-pro",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "29.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "catch-pro-annual",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Annual subscription to Catch",
+              "displayName" : "Catch Pro Annual",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.adityaarya.catch.pro.annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Catch Pro Annual",
+          "subscriptionGroupID" : "catch-pro",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}
