@@ -7,14 +7,16 @@ struct ProPaywallView: View {
     @StateObject private var store = CatchProStore()
     @State private var selectedPlan: CatchProPlan = .annual
     @State private var selectedFeaturePage = 0
+    var onClose: (() -> Void)?
+    var onUnlock: (() -> Void)?
 
     private let heroPills: [ProHeroPill] = [
-        ProHeroPill(title: "Widgets", symbol: "square.grid.2x2.fill", color: Color(hex: "5AC8FA"), rotation: -12, xOffset: -116, yOffset: 12),
-        ProHeroPill(title: "Can I catch it?", symbol: "figure.walk", color: Color(hex: "34C759"), rotation: 9, xOffset: 110, yOffset: 26),
-        ProHeroPill(title: "Leave now", symbol: "bell.badge.fill", color: Color(hex: "FF9F0A"), rotation: -7, xOffset: -94, yOffset: 74),
-        ProHeroPill(title: "Live Board", symbol: "rectangle.3.group.bubble.left.fill", color: Color(hex: "5AC8FA"), rotation: 7, xOffset: 100, yOffset: 88),
-        ProHeroPill(title: "Pinned buses", symbol: "pin.fill", color: Color(hex: "BF5AF2"), rotation: -5, xOffset: -84, yOffset: 132),
-        ProHeroPill(title: "Icons", symbol: "app.badge.fill", color: Color(hex: "BF5AF2"), rotation: 5, xOffset: 110, yOffset: 132)
+        ProHeroPill(title: "Widgets", symbol: "square.grid.2x2.fill", color: Color(hex: "5AC8FA"), rotation: -12, xOffset: -96, yOffset: 12),
+        ProHeroPill(title: "Can I catch it?", symbol: "figure.walk", color: Color(hex: "34C759"), rotation: 9, xOffset: 118, yOffset: 28),
+        ProHeroPill(title: "Leave now", symbol: "bell.badge.fill", color: Color(hex: "FF9F0A"), rotation: -7, xOffset: -64, yOffset: 68),
+        ProHeroPill(title: "Live Board", symbol: "rectangle.3.group.bubble.left.fill", color: Color(hex: "5AC8FA"), rotation: 7, xOffset: 124, yOffset: 86),
+        ProHeroPill(title: "Pinned buses", symbol: "pin.fill", color: Color(hex: "BF5AF2"), rotation: -5, xOffset: -18, yOffset: 120),
+        ProHeroPill(title: "Icons", symbol: "app.badge.fill", color: Color(hex: "BF5AF2"), rotation: 5, xOffset: 138, yOffset: 124)
     ]
 
     private let benefits: [ProBenefit] = [
@@ -69,10 +71,10 @@ struct ProPaywallView: View {
             GeometryReader { proxy in
                 VStack(spacing: 0) {
                     heroHeader
-                        .frame(height: min(224, proxy.size.height * 0.27))
+                        .frame(height: min(184, proxy.size.height * 0.22))
 
                     paywallCard(availableHeight: proxy.size.height)
-                        .offset(y: -18)
+                        .offset(y: -14)
                 }
                 .frame(maxWidth: 520)
                 .frame(maxWidth: .infinity)
@@ -125,9 +127,9 @@ struct ProPaywallView: View {
                 iconSize: 17,
                 foregroundColor: .white.opacity(0.82)
             ) {
-                dismiss()
+                closePaywall()
             }
-            .padding(.top, 38)
+            .padding(.top, 36)
             .padding(.trailing, 20)
         }
         .clipShape(
@@ -143,16 +145,16 @@ struct ProPaywallView: View {
     }
 
     private func paywallCard(availableHeight: CGFloat) -> some View {
-        let compact = availableHeight < 820
+        let compact = availableHeight < 920
         return VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .center) {
                 Image("CatchIcon")
                     .resizable()
                     .scaledToFill()
-                    .frame(width: compact ? 54 : 62, height: compact ? 54 : 62)
-                    .clipShape(RoundedRectangle(cornerRadius: compact ? 14 : 16, style: .continuous))
+                    .frame(width: compact ? 50 : 58, height: compact ? 50 : 58)
+                    .clipShape(RoundedRectangle(cornerRadius: compact ? 13 : 15, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: compact ? 14 : 16, style: .continuous)
+                        RoundedRectangle(cornerRadius: compact ? 13 : 15, style: .continuous)
                             .stroke(Color.white.opacity(0.10), lineWidth: 1)
                     )
 
@@ -164,7 +166,7 @@ struct ProPaywallView: View {
                         let didRestore = await store.restorePurchases()
                         if didRestore {
                             appState.setProMembership(true)
-                            dismiss()
+                            unlockPaywall()
                         }
                     }
                 } label: {
@@ -175,8 +177,8 @@ struct ProPaywallView: View {
                     .font(.system(size: 16, weight: .bold))
                     .tracking(16 * -0.025)
                     .foregroundStyle(Color(hex: "FFD60A"))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
                     .background(Color(hex: "FFD60A").opacity(0.12))
                     .clipShape(Capsule())
                 }
@@ -185,12 +187,12 @@ struct ProPaywallView: View {
             }
 
             Text("Free was the warm-up.")
-                .font(.system(size: compact ? 32 : 36, weight: .regular))
-                .tracking((compact ? 32 : 36) * -0.025)
+                .font(.system(size: compact ? 29 : 33, weight: .regular))
+                .tracking((compact ? 29 : 33) * -0.025)
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
-                .padding(.top, compact ? 16 : 20)
+                .padding(.top, compact ? 12 : 16)
 
             Text("Catch Pro is for the buses and routines you actually rely on.")
                 .font(.system(size: compact ? 15 : 16, weight: .semibold))
@@ -198,11 +200,11 @@ struct ProPaywallView: View {
                 .foregroundStyle(.white.opacity(0.70))
                 .lineLimit(2)
                 .minimumScaleFactor(0.82)
-                .padding(.top, 6)
+                .padding(.top, 5)
 
             TabView(selection: $selectedFeaturePage) {
                 ForEach(Array(benefitPages.enumerated()), id: \.offset) { pageIndex, page in
-                    VStack(spacing: compact ? 10 : 12) {
+                    VStack(spacing: compact ? 9 : 11) {
                         ForEach(page) { benefit in
                             ProBenefitRow(benefit: benefit, compact: compact)
                         }
@@ -211,8 +213,8 @@ struct ProPaywallView: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: compact ? 174 : 194)
-            .padding(.top, compact ? 14 : 18)
+            .frame(height: compact ? 150 : 170)
+            .padding(.top, compact ? 11 : 14)
 
             HStack(spacing: 8) {
                 ForEach(0..<benefitPages.count, id: \.self) { index in
@@ -222,17 +224,17 @@ struct ProPaywallView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.top, compact ? 8 : 12)
+            .padding(.top, compact ? 6 : 8)
 
             planPicker
-                .padding(.top, compact ? 14 : 18)
+                .padding(.top, compact ? 10 : 14)
 
             subscribeSection
-                .padding(.top, compact ? 14 : 16)
+                .padding(.top, compact ? 10 : 14)
         }
         .padding(.horizontal, compact ? 24 : 28)
-        .padding(.top, compact ? 20 : 24)
-        .padding(.bottom, compact ? 16 : 22)
+        .padding(.top, compact ? 16 : 20)
+        .padding(.bottom, compact ? 12 : 18)
         .background(Color(hex: "1C1C1E"))
         .clipShape(UnevenRoundedRectangle(topLeadingRadius: 34, bottomLeadingRadius: 34, bottomTrailingRadius: 34, topTrailingRadius: 34, style: .continuous))
         .padding(.horizontal, 14)
@@ -277,7 +279,7 @@ struct ProPaywallView: View {
                     let didUnlock = await store.purchase(selectedPlan)
                     if didUnlock {
                         appState.setProMembership(true)
-                        dismiss()
+                        unlockPaywall()
                     }
                 }
             } label: {
@@ -297,7 +299,7 @@ struct ProPaywallView: View {
                 .tracking(21 * -0.025)
                 .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 22)
+                .padding(.vertical, 15)
                 .background(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
             }
@@ -305,13 +307,29 @@ struct ProPaywallView: View {
             .disabled(store.isPurchasing)
 
             Text("No charge today, then \(store.renewalText(for: selectedPlan)). Cancel anytime.")
-                .font(.system(size: 14, weight: .bold))
-                .tracking(14 * -0.025)
+                .font(.system(size: 13, weight: .bold))
+                .tracking(13 * -0.025)
                 .foregroundStyle(.white.opacity(0.46))
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
                 .minimumScaleFactor(0.82)
-                .padding(.top, 4)
+                .padding(.top, 2)
+        }
+    }
+
+    private func closePaywall() {
+        if let onClose {
+            onClose()
+        } else {
+            dismiss()
+        }
+    }
+
+    private func unlockPaywall() {
+        if let onUnlock {
+            onUnlock()
+        } else {
+            dismiss()
         }
     }
 }
@@ -340,21 +358,21 @@ private struct HeroFeaturePill: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: pill.symbol)
-                .font(.system(size: 15, weight: .black))
+                .font(.system(size: 14, weight: .black))
                 .foregroundStyle(.white)
-                .frame(width: 34, height: 34)
+                .frame(width: 31, height: 31)
                 .background(pill.color.opacity(0.92))
                 .clipShape(Circle())
 
             Text(pill.title)
-                .font(.system(size: 17, weight: .semibold))
-                .tracking(17 * -0.025)
+                .font(.system(size: 16, weight: .semibold))
+                .tracking(16 * -0.025)
                 .foregroundStyle(.white.opacity(0.88))
                 .lineLimit(1)
         }
         .padding(.leading, 8)
-        .padding(.trailing, 16)
-        .padding(.vertical, 7)
+        .padding(.trailing, 15)
+        .padding(.vertical, 6)
         .background(Color.white.opacity(0.12))
         .overlay(
             Capsule()
@@ -369,28 +387,28 @@ private struct ProBenefitRow: View {
     let compact: Bool
 
     var body: some View {
-        HStack(spacing: compact ? 14 : 16) {
+        HStack(spacing: compact ? 12 : 14) {
             Image(systemName: benefit.symbol)
-                .font(.system(size: compact ? 16 : 18, weight: .black))
+                .font(.system(size: compact ? 15 : 17, weight: .black))
                 .foregroundStyle(benefit.color)
-                .frame(width: compact ? 44 : 50, height: compact ? 44 : 50)
+                .frame(width: compact ? 40 : 46, height: compact ? 40 : 46)
                 .background(Color.white.opacity(0.06))
-                .clipShape(RoundedRectangle(cornerRadius: compact ? 15 : 17, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: compact ? 14 : 16, style: .continuous))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(benefit.title)
-                    .font(.system(size: compact ? 17 : 19, weight: .bold))
-                    .tracking((compact ? 17 : 19) * -0.025)
+                    .font(.system(size: compact ? 16 : 18, weight: .bold))
+                    .tracking((compact ? 16 : 18) * -0.025)
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.82)
 
                 Text(benefit.subtitle)
-                    .font(.system(size: compact ? 13 : 15, weight: .semibold))
-                    .tracking((compact ? 13 : 15) * -0.025)
+                    .font(.system(size: compact ? 12 : 14, weight: .semibold))
+                    .tracking((compact ? 12 : 14) * -0.025)
                     .foregroundStyle(.white.opacity(0.58))
                     .lineLimit(2)
-                    .minimumScaleFactor(0.76)
+                    .minimumScaleFactor(0.82)
             }
         }
     }
@@ -406,11 +424,11 @@ private struct ProPlanCard: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 7) {
                 HStack(alignment: .top) {
                     Text(plan.title)
-                        .font(.system(size: 18, weight: .semibold))
-                        .tracking(18 * -0.025)
+                        .font(.system(size: 17, weight: .semibold))
+                        .tracking(17 * -0.025)
                         .foregroundStyle(.white.opacity(0.72))
 
                     Spacer(minLength: 4)
@@ -433,22 +451,22 @@ private struct ProPlanCard: View {
                         .foregroundStyle(.white.opacity(0.76))
 
                     Text(displayPrice)
-                        .font(.system(size: 35, weight: .regular))
-                        .tracking(35 * -0.025)
+                        .font(.system(size: 32, weight: .regular))
+                        .tracking(32 * -0.025)
                         .foregroundStyle(.white)
                         .lineLimit(1)
                         .minimumScaleFactor(0.72)
                 }
 
                 Text(subtitle)
-                    .font(.system(size: 14, weight: .semibold))
-                    .tracking(14 * -0.025)
+                    .font(.system(size: 13, weight: .semibold))
+                    .tracking(13 * -0.025)
                     .foregroundStyle(.white.opacity(0.38))
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
             }
-            .padding(16)
-            .frame(maxWidth: .infinity, minHeight: 116, alignment: .leading)
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 96, alignment: .leading)
             .background(Color.white.opacity(0.06))
             .overlay(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
@@ -539,8 +557,8 @@ enum CatchProPlan: CaseIterable {
 
     var fallbackPrice: Decimal {
         switch self {
-        case .monthly: Decimal(2)
-        case .annual: Decimal(30)
+        case .monthly: Decimal(string: "4.99") ?? Decimal(4)
+        case .annual: Decimal(string: "39.99") ?? Decimal(39)
         }
     }
 }
