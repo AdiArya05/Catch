@@ -1,5 +1,41 @@
 import SwiftUI
 
+private struct LocationEditorSheet: Identifiable {
+    let id: String
+    let editingId: String?
+    let initialBusStopCode: String?
+    let initialBusStopDescription: String?
+    let initialWalkMinutes: Int?
+
+    static let add = LocationEditorSheet(
+        id: "add",
+        editingId: nil,
+        initialBusStopCode: nil,
+        initialBusStopDescription: nil,
+        initialWalkMinutes: nil
+    )
+
+    static func edit(_ id: String) -> LocationEditorSheet {
+        LocationEditorSheet(
+            id: "edit-\(id)",
+            editingId: id,
+            initialBusStopCode: nil,
+            initialBusStopDescription: nil,
+            initialWalkMinutes: nil
+        )
+    }
+
+    static func addPlace(for nearby: NearbyStop, walkMinutes: Int) -> LocationEditorSheet {
+        LocationEditorSheet(
+            id: "add-\(nearby.stop.BusStopCode)",
+            editingId: nil,
+            initialBusStopCode: nearby.stop.BusStopCode,
+            initialBusStopDescription: nearby.stop.Description,
+            initialWalkMinutes: walkMinutes
+        )
+    }
+}
+
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.colorScheme) private var colorScheme
@@ -7,9 +43,9 @@ struct ContentView: View {
     @State private var selectedBusStopName: String?
     @State private var showSearch = false
     @State private var showSettings = false
-    @State private var showAddLocation = false
-    @State private var editingLocationId: String?
+    @State private var locationEditorSheet: LocationEditorSheet?
     @State private var showProfile = false
+    @State private var bottomBarCollapseProgress: CGFloat = 0
 
     var body: some View {
         ZStack {
@@ -50,10 +86,14 @@ struct ContentView: View {
             }
             .presentationDetents([.large])
         }
-        .sheet(isPresented: $showAddLocation) {
-            AddLocationView(editingId: editingLocationId) {
-                showAddLocation = false
-                editingLocationId = nil
+        .sheet(item: $locationEditorSheet) { sheet in
+            AddLocationView(
+                editingId: sheet.editingId,
+                initialBusStopCode: sheet.initialBusStopCode,
+                initialBusStopDescription: sheet.initialBusStopDescription,
+                initialWalkMinutes: sheet.initialWalkMinutes
+            ) {
+                locationEditorSheet = nil
             }
         }
         .sheet(isPresented: $showProfile) {
@@ -80,15 +120,28 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     headerSection
                     greetingSection
-                    if appState.isCatchItEnabled && (!appState.catchabilityMessage.isEmpty || appState.isLoadingCatchability) {
+                    if appState.isProMember && appState.isCatchItEnabled && (!appState.catchabilityMessage.isEmpty || appState.isLoadingCatchability) {
                         catchItCard
-                    }
-                    if appState.isProMember && appState.showInsightCard {
-                        insightCard
                     }
                     savedLocationsSection
                     divider
                     nearbySection
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .transaction { transaction in
+                    transaction.animation = nil
+                }
+            }
+            .transaction { transaction in
+                transaction.animation = nil
+            }
+            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                geometry.contentOffset.y
+            } action: { _, offset in
+                let shouldCollapse = bottomBarCollapseProgress > 0.5 ? offset > 16 : offset > 72
+                let targetProgress: CGFloat = shouldCollapse ? 1 : 0
+                if targetProgress != bottomBarCollapseProgress {
+                    bottomBarCollapseProgress = targetProgress
                 }
             }
             .refreshable {
@@ -97,9 +150,10 @@ struct ContentView: View {
                 await appState.refreshActiveLiveBoardIfNeeded()
             }
 
-            Spacer()
             bottomBar
+                .frame(maxWidth: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onReceive(appState.$allBusStops) { stops in
             if !stops.isEmpty && appState.catchabilityMessage.isEmpty && !appState.isLoadingCatchability {
                 appState.refreshCatchability()
@@ -254,8 +308,7 @@ struct ContentView: View {
                     }
                     .contextMenu {
                         Button(action: {
-                            editingLocationId = loc.id
-                            showAddLocation = true
+                            locationEditorSheet = .edit(loc.id)
                         }) {
                             Label("Edit", systemImage: "pencil")
                         }
@@ -279,10 +332,9 @@ struct ContentView: View {
                     fgColor: colorScheme == .dark ? Color(hex: "CCCCCC") : Color(hex: "666666")
                 ) {
                     if appState.isProMember || appState.savedLocations.count < appState.freeSavedPlaceLimit {
-                        editingLocationId = nil
-                        showAddLocation = true
+                        locationEditorSheet = .add
                     } else {
-                        appState.presentProPaywall(context: "Unlimited saved places")
+                        appState.presentProPaywall(context: "Unlimited saved stops")
                     }
                 }
             }
@@ -292,20 +344,21 @@ struct ContentView: View {
     }
 
     private func coloredPill(name: String, icon: String, bgColor: Color, fgColor: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 13, weight: .bold))
-                Text(name)
-                    .font(.system(size: 14, weight: .bold))
-                    .tracking(14 * -0.025)
-            }
-            .foregroundColor(fgColor)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 10)
-            .background(bgColor)
-            .clipShape(Capsule())
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .bold))
+            Text(name)
+                .font(.system(size: 14, weight: .bold))
+                .tracking(14 * -0.025)
         }
+        .foregroundColor(fgColor)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 10)
+        .background(bgColor)
+        .clipShape(Capsule())
+        .contentShape(Capsule())
+        .onTapGesture(perform: action)
+        .accessibilityAddTraits(.isButton)
     }
 
     private func pillColors(for loc: SavedLocation) -> (bg: Color, fg: Color) {
@@ -453,19 +506,23 @@ struct ContentView: View {
                                         .font(.system(size: 13, weight: .bold))
                                         .tracking(13 * -0.025)
                                         .foregroundColor(.secondary)
+                                        .lineLimit(1)
 
                                     if savedLocation != nil {
-                                        nearbyChip("Usual stop", color: Color(hex: "5AC8FA"), icon: "pin.fill")
+                                        nearbyChip("Pinned", color: Color(hex: "5AC8FA"), icon: "pin.fill")
                                     }
 
                                     nearbyChip(walkEstimateText(minutes: walkMinutes), color: Color(hex: "8E8E93"), icon: "figure.walk")
+
+                                    Spacer(minLength: 4)
+
+                                    Text(nearby.distanceText)
+                                        .font(.system(size: 14, weight: .bold))
+                                        .tracking(14 * -0.025)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
                                 }
                             }
-                            Spacer()
-                            Text(nearby.distanceText)
-                                .font(.system(size: 14, weight: .bold))
-                                .tracking(14 * -0.025)
-                                .foregroundColor(.secondary)
                         }
                         .padding(.vertical, 14)
 
@@ -478,59 +535,87 @@ struct ContentView: View {
                 }
                 .contextMenu {
                     if savedLocation == nil {
-                        Button(action: { saveNearbyStop(nearby, as: "Favourite", icon: "heart.fill") }) {
-                            Label("Save as Favourite", systemImage: "heart.fill")
+                        Button(action: { markNearbyStopAsUsual(nearby) }) {
+                            Label("Pin Stop", systemImage: "pin.fill")
                         }
-                        Button(action: { saveNearbyStop(nearby, as: "Work", icon: "briefcase.fill") }) {
-                            Label("Save as Work", systemImage: "briefcase.fill")
+                        Button(action: { openAddPlace(for: nearby) }) {
+                            Label("Add Place", systemImage: "plus.circle.fill")
                         }
-                        Button(action: { saveNearbyStop(nearby, as: "School", icon: "book.fill") }) {
-                            Label("Save as School", systemImage: "book.fill")
+                    } else {
+                        Button(role: .destructive, action: { removeNearbyStopPin(savedLocation) }) {
+                            Label("Remove Pin", systemImage: "pin.slash.fill")
                         }
-                    }
-                    Button(action: { markNearbyStopAsUsual(nearby) }) {
-                        Label("Mark as usual stop", systemImage: "pin.fill")
                     }
                 }
             }
         }
         .padding(.horizontal, 24)
         .padding(.top, 20)
-        .padding(.bottom, 100)
+        .padding(.bottom, 24)
     }
 
-    private func saveNearbyStop(_ nearby: NearbyStop, as name: String, icon: String) {
+    private func openAddPlace(for nearby: NearbyStop) {
         Haptics.tap(.medium)
         guard appState.isProMember || appState.savedLocations.count < appState.freeSavedPlaceLimit else {
-            appState.presentProPaywall(context: "Unlimited saved places")
+            appState.presentProPaywall(context: "Unlimited saved stops")
             return
         }
-        let location = SavedLocation(
-            id: UUID().uuidString,
-            name: name,
-            icon: icon,
-            colorHex: SavedLocation.defaultColorHex(for: name),
-            busStopCode: nearby.stop.BusStopCode,
-            busStopDescription: nearby.stop.Description,
-            walkMinutes: appState.estimatedWalkMinutes(to: nearby)
-        )
-        withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
-            appState.addLocation(location)
-        }
+        locationEditorSheet = .addPlace(for: nearby, walkMinutes: appState.estimatedWalkMinutes(to: nearby))
     }
 
     private func markNearbyStopAsUsual(_ nearby: NearbyStop) {
         Haptics.tap(.medium)
+        let walkMinutes = appState.estimatedWalkMinutes(to: nearby)
+        let home = SavedLocation(
+            id: "home",
+            name: "Home",
+            icon: "house.fill",
+            colorHex: SavedLocation.defaultColorHex(for: "Home"),
+            busStopCode: nearby.stop.BusStopCode,
+            busStopDescription: nearby.stop.Description,
+            walkMinutes: walkMinutes
+        )
+
+        guard appState.savedLocations.contains(where: { $0.id == "home" })
+                || appState.isProMember
+                || appState.savedLocations.count < appState.freeSavedPlaceLimit else {
+            appState.presentProPaywall(context: "Unlimited saved stops")
+            return
+        }
+
         withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
-            appState.updateLocation(
-                id: "home",
-                name: "Home",
-                icon: "house.fill",
-                colorHex: SavedLocation.defaultColorHex(for: "Home"),
-                busStopCode: nearby.stop.BusStopCode,
-                description: nearby.stop.Description
-            )
-            appState.updateWalkTime(id: "home", minutes: appState.estimatedWalkMinutes(to: nearby))
+            if appState.savedLocations.contains(where: { $0.id == "home" }) {
+                appState.updateLocation(
+                    id: home.id,
+                    name: home.name,
+                    icon: home.icon,
+                    colorHex: home.colorHex,
+                    busStopCode: home.busStopCode,
+                    description: home.busStopDescription
+                )
+                appState.updateWalkTime(id: home.id, minutes: walkMinutes)
+            } else {
+                appState.addLocation(home)
+            }
+        }
+    }
+
+    private func removeNearbyStopPin(_ savedLocation: SavedLocation?) {
+        guard let savedLocation else { return }
+        Haptics.tap(.medium)
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
+            if savedLocation.id == "home" {
+                appState.updateLocation(
+                    id: savedLocation.id,
+                    name: savedLocation.name,
+                    icon: savedLocation.icon,
+                    colorHex: savedLocation.colorHex,
+                    busStopCode: "",
+                    description: ""
+                )
+            } else {
+                appState.removeLocation(id: savedLocation.id)
+            }
         }
     }
 
@@ -541,6 +626,8 @@ struct ContentView: View {
             Text(text)
                 .font(.system(size: 11, weight: .bold))
                 .tracking(11 * -0.025)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .foregroundColor(color)
         .padding(.horizontal, 8)
@@ -574,9 +661,11 @@ struct ContentView: View {
 
                 if !appState.catchabilityLocationName.isEmpty {
                     Text(appState.catchabilityLocationName)
-                        .font(.system(size: 11, weight: .bold))
-                        .tracking(11 * -0.025)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 14, weight: .bold))
+                        .tracking(14 * -0.025)
+                        .foregroundColor(Color(hex: "A0A0A8"))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
                 }
             }
 
@@ -803,47 +892,79 @@ struct ContentView: View {
     // MARK: - Bottom Bar (Liquid Glass)
 
     private var bottomBar: some View {
-        HStack {
-            Button(action: {
-                withAnimation(.spring(response: 0.34, dampingFraction: 0.9)) {
+        let progress = bottomBarCollapseProgress
+        let sideSize: CGFloat = 52
+        let plusHeight: CGFloat = 56
+        let plusWidth = 56 + (42 * progress)
+
+        return GeometryReader { proxy in
+            let width = proxy.size.width
+            let centerX = width / 2
+            let sideInset: CGFloat = 24
+            let sideCenterY: CGFloat = 42
+            let expandedLeftX = sideInset + (sideSize / 2)
+            let expandedRightX = width - sideInset - (sideSize / 2)
+            let collapsedLeftX = centerX - 72
+            let collapsedRightX = centerX + 72
+            let settingsX = expandedLeftX + ((collapsedLeftX - expandedLeftX) * progress)
+            let profileX = expandedRightX + ((collapsedRightX - expandedRightX) * progress)
+
+            ZStack {
+                bottomBarIconButton(icon: "gearshape.fill", size: sideSize) {
                     showSettings = true
                 }
-            }) {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.primary)
-                    .frame(width: 52, height: 52)
+                .glassEffect(.regular.interactive())
+                .clipShape(Circle())
+                .position(x: settingsX, y: sideCenterY)
+
+                bottomBarIconButton(icon: "plus", size: plusHeight, width: plusWidth) {
+                    openAddSavedPlace()
+                }
+                .glassEffect(.regular.interactive())
+                .clipShape(RoundedRectangle(cornerRadius: 16 + (14 * progress), style: .continuous))
+                .position(x: centerX, y: sideCenterY)
+
+                bottomBarIconButton(icon: "person.fill", size: sideSize) {
+                    showProfile = true
+                }
+                .glassEffect(.regular.interactive())
+                .clipShape(Circle())
+                .position(x: profileX, y: sideCenterY)
             }
-            .glassEffect(.regular.interactive())
-            .clipShape(Circle())
-
-            Spacer()
-
-            Button(action: {
-                editingLocationId = nil
-                showAddLocation = true
-            }) {
-                Image(systemName: "plus")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(.primary)
-                    .frame(width: 56, height: 56)
-            }
-            .glassEffect(.regular.interactive())
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-
-            Spacer()
-
-            Button(action: { showProfile = true }) {
-                Image(systemName: "person.fill")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.primary)
-                    .frame(width: 52, height: 52)
-            }
-            .glassEffect(.regular.interactive())
-            .clipShape(Circle())
+            .frame(width: width, height: 84)
+            .animation(.spring(response: 0.32, dampingFraction: 0.88), value: bottomBarCollapseProgress)
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 12)
+        .frame(height: 84)
+    }
+
+    private func bottomBarIconButton(icon: String, size: CGFloat, width: CGFloat? = nil, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: icon == "plus" ? size * 0.42 : size * 0.38, weight: .bold))
+                .foregroundColor(.primary)
+                .frame(width: width ?? size, height: size)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel(forBottomIcon: icon))
+    }
+
+    private func openAddSavedPlace() {
+        Haptics.tap(.medium)
+        if appState.isProMember || appState.savedLocations.count < appState.freeSavedPlaceLimit {
+            locationEditorSheet = .add
+        } else {
+            appState.presentProPaywall(context: "Unlimited saved stops")
+        }
+    }
+
+    private func accessibilityLabel(forBottomIcon icon: String) -> String {
+        switch icon {
+        case "gearshape.fill": return "Settings"
+        case "person.fill": return "Profile"
+        case "plus": return "Add saved place"
+        case "house.fill": return "Home"
+        default: return icon
+        }
     }
 }
 

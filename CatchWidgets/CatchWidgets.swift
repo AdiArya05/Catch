@@ -62,19 +62,23 @@ private struct CatchWidgetView: View {
     @ViewBuilder
     private var content: some View {
         if entry.snapshot.isProMember == true {
-            switch family {
-            case .systemSmall:
-                SmallBusWidget(snapshot: entry.snapshot)
-            case .systemMedium:
-                MediumBusWidget(snapshot: entry.snapshot)
-            case .systemLarge:
-                LargeBusWidget(snapshot: entry.snapshot)
-            case .accessoryCircular:
+            if family == .accessoryCircular {
                 CircularLaunchWidget()
-            case .accessoryRectangular:
-                RectangularBusWidget(snapshot: entry.snapshot)
-            default:
-                SmallBusWidget(snapshot: entry.snapshot)
+            } else if !entry.snapshot.hasTransitData || (!entry.snapshot.hasBusData && family != .accessoryRectangular) {
+                EmptyTransitWidget(family: family)
+            } else {
+                switch family {
+                case .systemSmall:
+                    SmallBusWidget(snapshot: entry.snapshot)
+                case .systemMedium:
+                    MediumBusWidget(snapshot: entry.snapshot)
+                case .systemLarge:
+                    LargeBusWidget(snapshot: entry.snapshot)
+                case .accessoryRectangular:
+                    RectangularBusWidget(snapshot: entry.snapshot)
+                default:
+                    SmallBusWidget(snapshot: entry.snapshot)
+                }
             }
         } else {
             ProLockedWidget(family: family)
@@ -82,109 +86,114 @@ private struct CatchWidgetView: View {
     }
 }
 
-private struct ProLockedWidget: View {
+private struct EmptyTransitWidget: View {
     let family: WidgetFamily
 
     var body: some View {
         Group {
-            switch family {
-            case .systemSmall:
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Image("CatchIcon")
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 34, height: 34)
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        Spacer()
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 14, weight: .black))
-                            .foregroundStyle(CatchWidgetStyle.blue)
-                    }
-                    Spacer()
-                    Text("Catch Pro")
-                        .font(.system(size: 24, weight: .black))
-                        .tracking(titleTracking(for: 24))
-                        .foregroundStyle(.white)
-                    Text("Unlock widgets")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(CatchWidgetStyle.muted)
-                }
-                .padding(16)
-
-            case .accessoryCircular:
-                Image("CatchIcon")
-                    .resizable()
-                    .scaledToFit()
-                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                    .overlay(alignment: .bottomTrailing) {
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 8, weight: .black))
-                            .foregroundStyle(.white)
-                            .frame(width: 15, height: 15)
-                            .background(CatchWidgetStyle.blue, in: Circle())
-                    }
-
-            case .accessoryRectangular:
-                HStack(spacing: 6) {
-                    Image(systemName: "lock.fill")
+            if family == .accessoryRectangular {
+                HStack(spacing: 5) {
+                    Image(systemName: "pin.fill")
                         .font(.system(size: 12, weight: .black))
                         .foregroundStyle(CatchWidgetStyle.blue)
-                    Text("Catch Pro widgets")
-                        .font(.system(size: 15, weight: .bold))
+                    Text("Open Catch")
+                        .font(.system(size: 16, weight: .bold))
                         .lineLimit(1)
-                        .minimumScaleFactor(0.7)
                 }
-
-            default:
-                HStack(spacing: 0) {
-                    ZStack {
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.14, green: 0.42, blue: 1.0),
-                                Color(red: 0.04, green: 0.26, blue: 0.85)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                        ForEach(0..<6, id: \.self) { index in
-                            RoundedRectangle(cornerRadius: 36 + CGFloat(index * 6), style: .continuous)
-                                .stroke(Color.black, lineWidth: 8)
-                                .frame(width: 150 + CGFloat(index * 34), height: 76 + CGFloat(index * 24))
-                                .offset(x: -28)
-                        }
-                        Text("C")
-                            .font(.system(size: family == .systemLarge ? 110 : 88, weight: .black))
-                            .tracking(titleTracking(for: family == .systemLarge ? 110 : 88))
-                            .foregroundStyle(Color(red: 0.14, green: 0.42, blue: 1.0))
-                            .offset(x: -18)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .clipped()
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Catch Pro")
-                            .font(.system(size: family == .systemLarge ? 24 : 20, weight: .black))
-                            .tracking(titleTracking(for: family == .systemLarge ? 24 : 20))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                        Text("Subscribe to unlock widgets")
-                            .font(.system(size: family == .systemLarge ? 16 : 13, weight: .bold))
-                            .foregroundStyle(.white.opacity(0.76))
-                            .lineLimit(2)
-                        Text("Subscribe")
-                            .font(.system(size: 15, weight: .black))
-                            .foregroundStyle(.black)
-                            .padding(.horizontal, 18)
-                            .frame(height: 38)
-                            .background(.white, in: Capsule())
-                    }
-                    .frame(width: family == .systemLarge ? 190 : 150, alignment: .leading)
-                    .padding(.horizontal, 18)
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
+                    Image("CatchIcon")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 38, height: 38)
+                        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    Spacer()
+                    Text("Open Catch")
+                        .font(.system(size: family == .systemLarge ? 28 : 22, weight: .black))
+                        .tracking(titleTracking(for: family == .systemLarge ? 28 : 22))
+                        .foregroundStyle(.white)
+                    Text("Pin a stop to fill this widget.")
+                        .font(.system(size: family == .systemLarge ? 16 : 13, weight: .bold))
+                        .foregroundStyle(CatchWidgetStyle.muted)
+                        .lineLimit(2)
                 }
+                .padding(16)
             }
         }
         .widgetURL(URL(string: "catch://pro"))
+    }
+}
+
+private struct ProLockedWidget: View {
+    let family: WidgetFamily
+
+    var body: some View {
+        ZStack {
+            lockedPreview
+                .blur(radius: family == .accessoryRectangular ? 2.5 : 5)
+                .saturation(0.72)
+                .opacity(0.62)
+
+            Color.black.opacity(family == .accessoryRectangular ? 0.22 : 0.34)
+
+            unlockOverlay
+        }
+        .widgetURL(URL(string: "catch://home"))
+    }
+
+    @ViewBuilder
+    private var lockedPreview: some View {
+        switch family {
+        case .systemSmall:
+            SmallBusWidget(snapshot: .placeholder)
+        case .systemMedium:
+            MediumBusWidget(snapshot: .placeholder)
+        case .systemLarge:
+            LargeBusWidget(snapshot: .placeholder)
+        case .accessoryCircular:
+            CircularLaunchWidget()
+        case .accessoryRectangular:
+            RectangularBusWidget(snapshot: .placeholder)
+        default:
+            SmallBusWidget(snapshot: .placeholder)
+        }
+    }
+
+    @ViewBuilder
+    private var unlockOverlay: some View {
+        if family == .accessoryCircular {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 13, weight: .black))
+                .foregroundStyle(.white)
+                .frame(width: 28, height: 28)
+                .background(Color.black.opacity(0.46), in: Circle())
+        } else {
+            VStack(spacing: family == .systemSmall ? 5 : 8) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: family == .accessoryRectangular ? 12 : 16, weight: .black))
+                    .foregroundStyle(.white)
+                    .frame(width: family == .accessoryRectangular ? 24 : 32, height: family == .accessoryRectangular ? 24 : 32)
+                    .background(Color.white.opacity(0.16), in: Circle())
+
+                Text("Unlock with Catch Pro")
+                    .font(.system(size: unlockTitleSize, weight: .black))
+                    .tracking(titleTracking(for: unlockTitleSize))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(family == .systemSmall || family == .accessoryRectangular ? 2 : 1)
+                    .minimumScaleFactor(0.7)
+            }
+            .padding(.horizontal, family == .accessoryRectangular ? 8 : 18)
+        }
+    }
+
+    private var unlockTitleSize: CGFloat {
+        switch family {
+        case .systemSmall: return 18
+        case .systemLarge: return 26
+        case .accessoryRectangular: return 13
+        default: return 22
+        }
     }
 }
 
@@ -192,7 +201,7 @@ private struct SmallBusWidget: View {
     let snapshot: CatchWidgetSnapshot
 
     private var bus: CatchWidgetBus {
-        snapshot.pinnedBuses.first ?? CatchWidgetSnapshot.placeholder.pinnedBuses[0]
+        widgetBuses(from: snapshot).first ?? CatchWidgetSnapshot.placeholder.pinnedBuses[0]
     }
 
     var body: some View {
@@ -244,7 +253,7 @@ private struct MediumBusWidget: View {
     let snapshot: CatchWidgetSnapshot
 
     private var buses: [CatchWidgetBus] {
-        Array((snapshot.pinnedBuses.isEmpty ? CatchWidgetSnapshot.placeholder.pinnedBuses : snapshot.pinnedBuses).prefix(3))
+        Array(widgetBuses(from: snapshot).prefix(3))
     }
 
     var body: some View {
@@ -309,7 +318,7 @@ private struct LargeBusWidget: View {
 
     private var buses: [CatchWidgetBus] {
         var seen = Set<String>()
-        let preferred = snapshot.pinnedBuses + place.buses
+        let preferred = snapshot.pinnedBuses.isEmpty ? place.buses : snapshot.pinnedBuses
         let unique = preferred.filter { bus in
             guard !seen.contains(bus.serviceNo) else { return false }
             seen.insert(bus.serviceNo)
@@ -347,8 +356,12 @@ private struct LargeBusWidget: View {
             }
 
             VStack(spacing: 10) {
-                ForEach(buses) { bus in
-                    WidgetTimingRow(bus: bus, compact: false)
+                ForEach(0..<4, id: \.self) { index in
+                    if index < buses.count {
+                        WidgetTimingRow(bus: buses[index], compact: false)
+                    } else {
+                        WidgetTimingPlaceholderRow(compact: false)
+                    }
                 }
             }
 
@@ -356,6 +369,30 @@ private struct LargeBusWidget: View {
         }
         .padding(20)
         .widgetURL(stopURL(stopCode: snapshot.stopCode ?? place.stopCode, stopName: displayStopName))
+    }
+}
+
+private struct WidgetTimingPlaceholderRow: View {
+    let compact: Bool
+
+    var body: some View {
+        HStack(spacing: compact ? 10 : 14) {
+            Text("—")
+                .font(.system(size: compact ? 24 : 28, weight: .heavy))
+                .foregroundStyle(CatchWidgetStyle.muted)
+                .frame(width: compact ? 58 : 72, alignment: .leading)
+
+            HStack(spacing: compact ? 8 : 14) {
+                ForEach(0..<3, id: \.self) { _ in
+                    ArrivalCell(minutes: nil, compact: compact)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, compact ? 16 : 18)
+        .frame(height: compact ? 42 : 48)
+        .background(Color.white.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: compact ? 18 : 20, style: .continuous))
     }
 }
 
@@ -770,6 +807,16 @@ private func relativeUpdatedText(_ date: Date) -> String {
 private func arrivalCompactText(_ minutes: Int?) -> String {
     guard let minutes else { return "—" }
     return minutes <= 0 ? "Arr" : "\(minutes)m"
+}
+
+private func widgetBuses(from snapshot: CatchWidgetSnapshot) -> [CatchWidgetBus] {
+    var seen = Set<String>()
+    let buses = snapshot.pinnedBuses + (snapshot.home?.buses ?? []) + (snapshot.work?.buses ?? [])
+    return buses.filter { bus in
+        guard !seen.contains(bus.serviceNo) else { return false }
+        seen.insert(bus.serviceNo)
+        return true
+    }
 }
 
 private func titleTracking(for size: CGFloat) -> CGFloat {

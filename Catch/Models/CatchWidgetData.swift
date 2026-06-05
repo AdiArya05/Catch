@@ -9,6 +9,14 @@ struct CatchWidgetSnapshot: Codable {
     var work: CatchWidgetPlace?
     var isProMember: Bool?
 
+    var hasTransitData: Bool {
+        stopCode != nil || !pinnedBuses.isEmpty || home != nil || work != nil
+    }
+
+    var hasBusData: Bool {
+        !pinnedBuses.isEmpty || !(home?.buses.isEmpty ?? true) || !(work?.buses.isEmpty ?? true)
+    }
+
     static let placeholder = CatchWidgetSnapshot(
         stopCode: "21699",
         stopName: "Summerdale",
@@ -38,6 +46,16 @@ struct CatchWidgetSnapshot: Codable {
                 CatchWidgetBus(serviceNo: "30", arrivals: [9, 21, 42], catchability: .easy),
             ]
         )
+    )
+
+    static let empty = CatchWidgetSnapshot(
+        stopCode: nil,
+        stopName: "Open Catch",
+        updatedAt: Date(),
+        pinnedBuses: [],
+        home: nil,
+        work: nil,
+        isProMember: nil
     )
 }
 
@@ -75,9 +93,9 @@ enum CatchWidgetStore {
         guard let defaults = UserDefaults(suiteName: appGroup),
               let data = defaults.data(forKey: snapshotKey),
               var snapshot = try? JSONDecoder().decode(CatchWidgetSnapshot.self, from: data) else {
-            var placeholder = CatchWidgetSnapshot.placeholder
-            placeholder.isProMember = UserDefaults(suiteName: appGroup)?.bool(forKey: proKey) ?? false
-            return placeholder
+            var empty = CatchWidgetSnapshot.empty
+            empty.isProMember = UserDefaults(suiteName: appGroup)?.bool(forKey: proKey) ?? false
+            return empty
         }
         snapshot.isProMember = defaults.bool(forKey: proKey)
         return snapshot

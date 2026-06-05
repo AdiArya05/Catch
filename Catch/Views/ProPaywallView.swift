@@ -1,48 +1,47 @@
 import SwiftUI
 import StoreKit
 
+private enum CatchPaywallLegalURL {
+    static let privacy = URL(string: "https://adiarya05.github.io/Catch/privacy.html")!
+    static let terms = URL(string: "https://adiarya05.github.io/Catch/terms.html")!
+}
+
 struct ProPaywallView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @StateObject private var store = CatchProStore()
-    @State private var selectedPlan: CatchProPlan = .annual
+    @State private var selectedPlan: CatchProPlan = .monthly
     @State private var selectedFeaturePage = 0
+    @State private var isPricingExpanded = false
+    @State private var isTrialButtonPulsing = false
     var onClose: (() -> Void)?
     var onUnlock: (() -> Void)?
-
-    private let heroPills: [ProHeroPill] = [
-        ProHeroPill(title: "Widgets", symbol: "square.grid.2x2.fill", color: Color(hex: "5AC8FA"), rotation: -12, xOffset: -96, yOffset: 12),
-        ProHeroPill(title: "Can I catch it?", symbol: "figure.walk", color: Color(hex: "34C759"), rotation: 9, xOffset: 118, yOffset: 28),
-        ProHeroPill(title: "Leave now", symbol: "bell.badge.fill", color: Color(hex: "FF9F0A"), rotation: -7, xOffset: -64, yOffset: 68),
-        ProHeroPill(title: "Live Board", symbol: "rectangle.3.group.bubble.left.fill", color: Color(hex: "5AC8FA"), rotation: 7, xOffset: 124, yOffset: 86),
-        ProHeroPill(title: "Pinned buses", symbol: "pin.fill", color: Color(hex: "BF5AF2"), rotation: -5, xOffset: -18, yOffset: 120),
-        ProHeroPill(title: "Icons", symbol: "app.badge.fill", color: Color(hex: "BF5AF2"), rotation: 5, xOffset: 138, yOffset: 124)
-    ]
 
     private let benefits: [ProBenefit] = [
         ProBenefit(
             title: "Smart leave-now alerts",
-            subtitle: "Know when to leave before the bus gets too tight.",
+            subtitle: "Know when to leave before it gets tight.",
             symbol: "bell.badge.fill",
             color: Color(hex: "FF9F0A")
         ),
         ProBenefit(
             title: "Live Board",
-            subtitle: "Pin your stop to Dynamic Island, widgets, and Live Activities.",
+            subtitle: "Pin stops to Dynamic Island, widgets, and Live Activities.",
             symbol: "rectangle.3.group.bubble.left.fill",
             color: Color(hex: "5AC8FA")
-        ),
-        ProBenefit(
-            title: "Route memory",
-            subtitle: "Catch learns the buses and timings you actually take.",
-            symbol: "brain.head.profile",
-            color: Color(hex: "FFD60A")
         ),
         ProBenefit(
             title: "Widgets",
             subtitle: "Keep pinned buses on Home and Lock Screen.",
             symbol: "square.grid.2x2.fill",
             color: Color(hex: "5AC8FA")
+        ),
+        ProBenefit(
+            title: "Unlimited saved stops",
+            subtitle: "Save every stop and place you use often.",
+            symbol: "bookmark.fill",
+            color: Color(hex: "30D158")
         ),
         ProBenefit(
             title: "Can I catch it?",
@@ -66,202 +65,159 @@ struct ProPaywallView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color(hex: "292929").ignoresSafeArea()
 
-            GeometryReader { proxy in
-                VStack(spacing: 0) {
-                    heroHeader
-                        .frame(height: min(184, proxy.size.height * 0.22))
-
-                    paywallCard(availableHeight: proxy.size.height)
-                        .offset(y: -14)
-                }
-                .frame(maxWidth: 520)
+            VStack(spacing: 0) {
+                paywallContent
                 .frame(maxWidth: .infinity)
-                .frame(height: proxy.size.height, alignment: .top)
             }
+            .ignoresSafeArea()
         }
         .preferredColorScheme(.dark)
         .task {
             await store.loadProducts()
+            #if !DEBUG
             if !appState.isProMember, await store.refreshEntitlements() {
                 appState.setProMembership(true)
             }
+            #endif
         }
     }
 
-    private var heroHeader: some View {
-        ZStack(alignment: .topTrailing) {
-            LinearGradient(
-                colors: [
-                    Color(hex: "052A21"),
-                    Color(hex: "0B5F35"),
-                    Color(hex: "104626")
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+    private var paywallContent: some View {
+        GeometryReader { proxy in
+            let compact = proxy.size.height < 820
+            let expanded = isPricingExpanded
+            let iconSize: CGFloat = expanded ? 58 : (compact ? 78 : 92)
+            let iconRadius: CGFloat = expanded ? 15 : (compact ? 20 : 24)
+            let featureSize: CGFloat = expanded ? 22 : (compact ? 24 : 26)
+            VStack(spacing: 0) {
+                Spacer(minLength: expanded ? 62 : (compact ? 72 : 94))
 
-            RadialGradient(
-                colors: [Color(hex: "21D07A").opacity(0.42), .clear],
-                center: .topLeading,
-                startRadius: 12,
-                endRadius: 320
-            )
-
-            ForEach(heroPills) { pill in
-                HeroFeaturePill(pill: pill)
-                    .rotationEffect(.degrees(pill.rotation))
-                    .offset(x: pill.xOffset, y: pill.yOffset)
-            }
-
-            Text("PRO")
-                .font(.system(size: 52, weight: .black))
-                .tracking(52 * -0.025)
-                .foregroundStyle(Color(hex: "0B7D5B").opacity(0.55))
-                .padding(.top, 58)
-
-            GlassCircleIconButton(
-                systemName: "xmark",
-                size: 42,
-                iconSize: 17,
-                foregroundColor: .white.opacity(0.82)
-            ) {
-                closePaywall()
-            }
-            .padding(.top, 36)
-            .padding(.trailing, 20)
-        }
-        .clipShape(
-            UnevenRoundedRectangle(
-                topLeadingRadius: 44,
-                bottomLeadingRadius: 0,
-                bottomTrailingRadius: 0,
-                topTrailingRadius: 44,
-                style: .continuous
-            )
-        )
-        .padding(.horizontal, 14)
-    }
-
-    private func paywallCard(availableHeight: CGFloat) -> some View {
-        let compact = availableHeight < 920
-        return VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .center) {
                 Image("CatchIcon")
                     .resizable()
                     .scaledToFill()
-                    .frame(width: compact ? 50 : 58, height: compact ? 50 : 58)
-                    .clipShape(RoundedRectangle(cornerRadius: compact ? 13 : 15, style: .continuous))
+                    .frame(width: iconSize, height: iconSize)
+                    .clipShape(RoundedRectangle(cornerRadius: iconRadius, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: compact ? 13 : 15, style: .continuous)
-                            .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: iconRadius, style: .continuous)
+                            .stroke(Color.white.opacity(0.12), lineWidth: 1)
                     )
 
-                Spacer()
+                VStack(spacing: expanded ? 12 : (compact ? 14 : 16)) {
+                    featureLine("Widgets", symbol: "square.grid.2x2.fill", color: Color(hex: "5AC8FA"), badge: "New", size: featureSize)
+                    featureLine("Live Board", symbol: "rectangle.3.group.bubble.left.fill", color: Color(hex: "5AC8FA"), size: featureSize)
+                    featureLine("Smart leave-now alerts", symbol: "bell.badge.fill", color: Color(hex: "FF9F0A"), size: featureSize)
+                    featureLine("Can I catch it?", symbol: "figure.walk", color: Color(hex: "34C759"), size: featureSize)
+                    featureLine("Unlimited saved stops", symbol: "bookmark.fill", color: Color(hex: "30D158"), size: featureSize)
+                    featureLine("All app icons", symbol: "app.badge.fill", color: Color(hex: "BF5AF2"), size: featureSize)
+                }
+                .padding(.top, expanded ? 28 : (compact ? 40 : 56))
+
+                Spacer(minLength: expanded ? 20 : (compact ? 28 : 42))
+
+                pricingSection
+                    .padding(.horizontal, 32)
 
                 Button {
-                    Haptics.tap()
+                    Haptics.tap(.medium)
+                    #if DEBUG
+                    appState.setProMembership(true)
+                    unlockPaywall()
+                    #else
                     Task {
-                        let didRestore = await store.restorePurchases()
-                        if didRestore {
+                        let didUnlock = await store.purchase(selectedPlan)
+                        if didUnlock {
                             appState.setProMembership(true)
                             unlockPaywall()
                         }
                     }
+                    #endif
                 } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "arrow.counterclockwise")
-                        Text("Restore")
-                    }
-                    .font(.system(size: 16, weight: .bold))
-                    .tracking(16 * -0.025)
-                    .foregroundStyle(Color(hex: "FFD60A"))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color(hex: "FFD60A").opacity(0.12))
-                    .clipShape(Capsule())
+                    AnimatedTrialButtonLabel(
+                        title: store.subscribeButtonTitle(for: selectedPlan),
+                        height: compact ? 76 : 86,
+                        isAnimating: isTrialButtonPulsing
+                    )
                 }
                 .buttonStyle(.plain)
-                .disabled(store.isPurchasing)
-            }
+            .disabled(store.isPurchasing)
+            .padding(.horizontal, 32)
+            .padding(.top, expanded ? 12 : (compact ? 14 : 20))
 
-            Text("Free was the warm-up.")
-                .font(.system(size: compact ? 29 : 33, weight: .regular))
-                .tracking((compact ? 29 : 33) * -0.025)
-                .foregroundStyle(.white)
+            restoreFooter
+                    .padding(.top, expanded ? 14 : (compact ? 18 : 24))
+                    .padding(.bottom, expanded ? 16 : (compact ? 18 : 28))
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+        }
+        .onAppear {
+            isTrialButtonPulsing = true
+        }
+    }
+
+    private func featureLine(_ title: String, symbol: String, color: Color, badge: String? = nil, size: CGFloat) -> some View {
+        HStack(spacing: 9) {
+            Image(systemName: symbol)
+                .font(.system(size: size * 0.54, weight: .black))
+                .foregroundStyle(color)
+                .frame(width: size * 0.95, height: size * 0.95)
+                .background(Color.white.opacity(0.07))
+                .clipShape(Circle())
+
+            Text(title)
+                .font(.system(size: size, weight: .bold))
+                .tracking(size * -0.025)
+                .foregroundStyle(.white.opacity(0.82))
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
-                .padding(.top, compact ? 12 : 16)
 
-            Text("Catch Pro is for the buses and routines you actually rely on.")
-                .font(.system(size: compact ? 15 : 16, weight: .semibold))
-                .tracking((compact ? 15 : 16) * -0.025)
-                .foregroundStyle(.white.opacity(0.70))
-                .lineLimit(2)
-                .minimumScaleFactor(0.82)
-                .padding(.top, 5)
+            if let badge {
+                Text(badge)
+                    .font(.system(size: 15, weight: .bold))
+                    .tracking(15 * -0.025)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color(hex: "0A84FF"))
+                    .clipShape(Capsule())
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 28)
+    }
 
-            TabView(selection: $selectedFeaturePage) {
-                ForEach(Array(benefitPages.enumerated()), id: \.offset) { pageIndex, page in
-                    VStack(spacing: compact ? 9 : 11) {
-                        ForEach(page) { benefit in
-                            ProBenefitRow(benefit: benefit, compact: compact)
+    private var pricingSection: some View {
+        VStack(spacing: 10) {
+            if isPricingExpanded {
+                ForEach(CatchProPlan.allCases, id: \.self) { plan in
+                    JoiPlanRow(
+                        plan: plan,
+                        price: store.fullPriceText(for: plan),
+                        subtitle: store.joiSubtitle(for: plan),
+                        badgeText: plan == .annual ? store.annualPercentChangeText : nil,
+                        isSelected: selectedPlan == plan
+                    ) {
+                        Haptics.tap()
+                        withAnimation(.spring(response: 0.34, dampingFraction: 0.88)) {
+                            selectedPlan = plan
                         }
                     }
-                    .tag(pageIndex)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: compact ? 150 : 170)
-            .padding(.top, compact ? 11 : 14)
-
-            HStack(spacing: 8) {
-                ForEach(0..<benefitPages.count, id: \.self) { index in
-                    Circle()
-                        .fill(index == selectedFeaturePage ? Color.white : Color.white.opacity(0.16))
-                        .frame(width: 8, height: 8)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.top, compact ? 6 : 8)
-
-            planPicker
-                .padding(.top, compact ? 10 : 14)
-
-            subscribeSection
-                .padding(.top, compact ? 10 : 14)
-        }
-        .padding(.horizontal, compact ? 24 : 28)
-        .padding(.top, compact ? 16 : 20)
-        .padding(.bottom, compact ? 12 : 18)
-        .background(Color(hex: "1C1C1E"))
-        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 34, bottomLeadingRadius: 34, bottomTrailingRadius: 34, topTrailingRadius: 34, style: .continuous))
-        .padding(.horizontal, 14)
-    }
-
-    @ViewBuilder
-    private var planPicker: some View {
-        HStack(spacing: 12) {
-            ForEach(CatchProPlan.allCases, id: \.self) { plan in
-                ProPlanCard(
-                    plan: plan,
-                    displayPrice: store.planDisplayPrice(for: plan),
-                    subtitle: store.planSubtitle(for: plan),
-                    badgeText: plan == .annual ? store.annualDiscountBadgeText : nil,
-                    isSelected: selectedPlan == plan
+            } else {
+                JoiCollapsedPlanRow(
+                    plan: selectedPlan,
+                    price: store.fullPriceText(for: selectedPlan),
+                    subtitle: store.joiSubtitle(for: selectedPlan)
                 ) {
                     Haptics.tap()
-                    withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
-                        selectedPlan = plan
+                    withAnimation(.spring(response: 0.38, dampingFraction: 0.86)) {
+                        isPricingExpanded = true
                     }
                 }
             }
-        }
-    }
 
-    private var subscribeSection: some View {
-        VStack(spacing: 12) {
             if let message = store.statusMessage, store.statusIsError {
                 Text(message)
                     .font(.system(size: 12, weight: .bold))
@@ -272,48 +228,54 @@ struct ProPaywallView: View {
                     .minimumScaleFactor(0.82)
                     .padding(.horizontal, 6)
             }
+        }
+    }
 
+    private var restoreFooter: some View {
+        VStack(spacing: 9) {
             Button {
-                Haptics.tap(.medium)
+                Haptics.tap()
                 Task {
-                    let didUnlock = await store.purchase(selectedPlan)
-                    if didUnlock {
+                    let didRestore = await store.restorePurchases()
+                    if didRestore {
                         appState.setProMembership(true)
                         unlockPaywall()
                     }
                 }
             } label: {
-                HStack(spacing: 10) {
-                    Text("Start 7 Day")
-                    Text("Free")
-                        .font(.system(size: 15, weight: .bold))
-                        .tracking(15 * -0.025)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 11)
-                        .padding(.vertical, 6)
-                        .background(Color.black.opacity(0.70))
-                        .clipShape(Capsule())
-                    Text("Trial")
+                HStack(spacing: 6) {
+                    Text("Restore purchases")
+                    Image(systemName: "arrow.right.circle.fill")
                 }
-                .font(.system(size: 21, weight: .bold))
-                .tracking(21 * -0.025)
-                .foregroundStyle(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 15)
-                .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+                .font(.system(size: 18, weight: .bold))
+                .tracking(18 * -0.025)
+                .foregroundStyle(.white.opacity(0.30))
             }
             .buttonStyle(.plain)
             .disabled(store.isPurchasing)
 
-            Text("No charge today, then \(store.renewalText(for: selectedPlan)). Cancel anytime.")
-                .font(.system(size: 13, weight: .bold))
-                .tracking(13 * -0.025)
-                .foregroundStyle(.white.opacity(0.46))
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.82)
-                .padding(.top, 2)
+            Text("Manage or cancel in App Store settings.")
+                .font(.system(size: 16, weight: .semibold))
+                .tracking(16 * -0.025)
+                .foregroundStyle(.white.opacity(0.20))
+                .lineLimit(1)
+                .minimumScaleFactor(0.76)
+
+            HStack(spacing: 10) {
+                Button("Terms") {
+                    openURL(CatchPaywallLegalURL.terms)
+                }
+
+                Text("•")
+
+                Button("Privacy") {
+                    openURL(CatchPaywallLegalURL.privacy)
+                }
+            }
+            .font(.system(size: 13, weight: .bold))
+            .tracking(13 * -0.025)
+            .foregroundStyle(.white.opacity(0.24))
+            .buttonStyle(.plain)
         }
     }
 
@@ -334,16 +296,6 @@ struct ProPaywallView: View {
     }
 }
 
-private struct ProHeroPill: Identifiable {
-    let id = UUID()
-    let title: String
-    let symbol: String
-    let color: Color
-    let rotation: Double
-    let xOffset: CGFloat
-    let yOffset: CGFloat
-}
-
 private struct ProBenefit: Identifiable {
     let id = UUID()
     let title: String
@@ -352,46 +304,16 @@ private struct ProBenefit: Identifiable {
     let color: Color
 }
 
-private struct HeroFeaturePill: View {
-    let pill: ProHeroPill
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: pill.symbol)
-                .font(.system(size: 14, weight: .black))
-                .foregroundStyle(.white)
-                .frame(width: 31, height: 31)
-                .background(pill.color.opacity(0.92))
-                .clipShape(Circle())
-
-            Text(pill.title)
-                .font(.system(size: 16, weight: .semibold))
-                .tracking(16 * -0.025)
-                .foregroundStyle(.white.opacity(0.88))
-                .lineLimit(1)
-        }
-        .padding(.leading, 8)
-        .padding(.trailing, 15)
-        .padding(.vertical, 6)
-        .background(Color.white.opacity(0.12))
-        .overlay(
-            Capsule()
-                .stroke(Color.white.opacity(0.22), lineWidth: 1)
-        )
-        .clipShape(Capsule())
-    }
-}
-
 private struct ProBenefitRow: View {
     let benefit: ProBenefit
     let compact: Bool
 
     var body: some View {
-        HStack(spacing: compact ? 12 : 14) {
+        HStack(alignment: .center, spacing: compact ? 12 : 14) {
             Image(systemName: benefit.symbol)
-                .font(.system(size: compact ? 15 : 17, weight: .black))
+                .font(.system(size: compact ? 14 : 16, weight: .black))
                 .foregroundStyle(benefit.color)
-                .frame(width: compact ? 40 : 46, height: compact ? 40 : 46)
+                .frame(width: compact ? 38 : 44, height: compact ? 38 : 44)
                 .background(Color.white.opacity(0.06))
                 .clipShape(RoundedRectangle(cornerRadius: compact ? 14 : 16, style: .continuous))
 
@@ -404,13 +326,204 @@ private struct ProBenefitRow: View {
                     .minimumScaleFactor(0.82)
 
                 Text(benefit.subtitle)
-                    .font(.system(size: compact ? 12 : 14, weight: .semibold))
-                    .tracking((compact ? 12 : 14) * -0.025)
+                    .font(.system(size: compact ? 11 : 13, weight: .semibold))
+                    .tracking((compact ? 11 : 13) * -0.025)
                     .foregroundStyle(.white.opacity(0.58))
                     .lineLimit(2)
                     .minimumScaleFactor(0.82)
             }
+
+            Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct AnimatedTrialButtonLabel: View {
+    let title: String
+    let height: CGFloat
+    let isAnimating: Bool
+
+    var body: some View {
+        WaveTrialText(title: title, isAnimating: isAnimating)
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
+            .background(Color.white.opacity(0.90))
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .stroke(Color.white.opacity(isAnimating ? 0.56 : 0.18), lineWidth: 1)
+                    .animation(.easeInOut(duration: 0.78).repeatForever(autoreverses: true), value: isAnimating)
+            )
+            .shadow(color: .white.opacity(isAnimating ? 0.24 : 0.12), radius: isAnimating ? 18 : 10, y: 0)
+    }
+}
+
+private struct WaveTrialText: View {
+    let title: String
+    let isAnimating: Bool
+
+    var body: some View {
+        GeometryReader { proxy in
+            TimelineView(.animation) { timeline in
+                let cycleDuration = 2.75
+                let sweepDuration = 1.28
+                let shineWidth: CGFloat = 170
+                let time = isAnimating ? timeline.date.timeIntervalSinceReferenceDate : 0
+                let cycleTime = time.truncatingRemainder(dividingBy: cycleDuration)
+                let isSweeping = isAnimating && cycleTime <= sweepDuration
+                let rawProgress = min(cycleTime / sweepDuration, 1)
+                let progress = rawProgress * rawProgress * (3 - 2 * rawProgress)
+                let travel = proxy.size.width + shineWidth * 2
+                let shineX = (-shineWidth) + (travel * progress)
+
+                ZStack {
+                    trialText
+                        .foregroundStyle(Color.black.opacity(0.92))
+
+                    Rectangle()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    .clear,
+                                    Color.black.opacity(0.10),
+                                    Color(white: 0.72).opacity(0.92),
+                                    Color.black.opacity(0.16),
+                                    .clear
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: shineWidth, height: proxy.size.height)
+                        .blur(radius: 0.7)
+                        .offset(x: shineX - (proxy.size.width / 2))
+                        .opacity(isSweeping ? 1 : 0)
+                        .mask(trialText)
+                        .allowsHitTesting(false)
+                }
+                .frame(width: proxy.size.width, height: proxy.size.height)
+                .drawingGroup(opaque: false)
+            }
+        }
+    }
+
+    private var trialText: some View {
+        Text(title)
+            .font(.system(size: 24, weight: .bold))
+            .tracking(24 * -0.025)
+            .lineLimit(1)
+            .minimumScaleFactor(0.86)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct JoiCollapsedPlanRow: View {
+    let plan: CatchProPlan
+    let price: String
+    let subtitle: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 7) {
+                        Text(plan.title)
+                            .font(.system(size: 22, weight: .bold))
+                            .tracking(22 * -0.025)
+                            .foregroundStyle(.white.opacity(0.82))
+
+                        Image(systemName: "chevron.right.circle.fill")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.28))
+                    }
+
+                    Text(subtitle)
+                        .font(.system(size: 18, weight: .semibold))
+                        .tracking(18 * -0.025)
+                        .foregroundStyle(.white.opacity(0.30))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.68)
+                }
+
+                Spacer(minLength: 8)
+
+                Text(price)
+                    .font(.system(size: 22, weight: .bold))
+                    .tracking(22 * -0.025)
+                    .foregroundStyle(.white.opacity(0.86))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+            .padding(.horizontal, 24)
+            .frame(height: 90)
+            .background(Color.white.opacity(0.10))
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct JoiPlanRow: View {
+    let plan: CatchProPlan
+    let price: String
+    let subtitle: String
+    let badgeText: String?
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(plan.title)
+                        .font(.system(size: 22, weight: .bold))
+                        .tracking(22 * -0.025)
+                        .foregroundStyle(.white.opacity(0.82))
+                        .lineLimit(1)
+
+                    Text(subtitle)
+                        .font(.system(size: 16, weight: .semibold))
+                        .tracking(16 * -0.025)
+                        .foregroundStyle(.white.opacity(0.30))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.54)
+                        .allowsTightening(true)
+                }
+                .layoutPriority(1)
+
+                Spacer(minLength: 4)
+
+                if let badgeText {
+                    Text(badgeText)
+                        .font(.system(size: 14, weight: .black))
+                        .tracking(14 * -0.025)
+                        .foregroundStyle(Color(hex: "FF2D55"))
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 4)
+                        .background(Color(hex: "FF2D55").opacity(0.18))
+                        .clipShape(Capsule())
+                }
+
+                Text(price)
+                    .font(.system(size: 22, weight: .bold))
+                    .tracking(22 * -0.025)
+                    .foregroundStyle(.white.opacity(0.86))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+            .padding(.horizontal, 20)
+            .frame(height: 86)
+            .background(Color.white.opacity(isSelected ? 0.12 : 0.09))
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(isSelected ? Color.white.opacity(0.18) : Color.clear, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -557,8 +670,8 @@ enum CatchProPlan: CaseIterable {
 
     var fallbackPrice: Decimal {
         switch self {
-        case .monthly: Decimal(string: "4.99") ?? Decimal(4)
-        case .annual: Decimal(string: "39.99") ?? Decimal(39)
+        case .monthly: Decimal(string: "3.99") ?? Decimal(3)
+        case .annual: Decimal(string: "29.99") ?? Decimal(29)
         }
     }
 }
@@ -597,7 +710,7 @@ final class CatchProStore: ObservableObject {
     func priceText(for plan: CatchProPlan) -> String {
         switch plan {
         case .monthly:
-            return product(for: plan)?.displayPrice ?? "$2"
+            return product(for: plan)?.displayPrice ?? currencyString(CatchProPlan.monthly.fallbackPrice)
         case .annual:
             let annualPrice = priceDecimal(for: plan)
             return "\(currencyString(annualPrice / Decimal(12)))/mo"
@@ -609,7 +722,7 @@ final class CatchProStore: ObservableObject {
         case .monthly:
             return "Monthly subscription to Catch"
         case .annual:
-            let annualPrice = product(for: plan)?.displayPrice ?? "$30"
+            let annualPrice = product(for: plan)?.displayPrice ?? currencyString(CatchProPlan.annual.fallbackPrice)
             return "\(annualPrice) billed yearly"
         }
     }
@@ -621,10 +734,32 @@ final class CatchProStore: ObservableObject {
     func planSubtitle(for plan: CatchProPlan) -> String {
         switch plan {
         case .monthly:
-            return "Monthly subscription to Catch"
+            return "Billed monthly"
         case .annual:
             return "\(currencyString(priceDecimal(for: .annual) / Decimal(12)))/mo, billed yearly"
         }
+    }
+
+    func fullPriceText(for plan: CatchProPlan) -> String {
+        currencyString(priceDecimal(for: plan))
+    }
+
+    func joiSubtitle(for plan: CatchProPlan) -> String {
+        switch plan {
+        case .monthly:
+            return hasIntroOffer(for: plan) ? "3 days free, then monthly" : "Billed monthly"
+        case .annual:
+            return hasIntroOffer(for: plan) ? "3 days free, then billed yearly" : "Billed yearly"
+        }
+    }
+
+    func subscribeButtonTitle(for plan: CatchProPlan) -> String {
+        hasIntroOffer(for: plan) ? "Start 3-Day Trial" : "Continue"
+    }
+
+    private func hasIntroOffer(for plan: CatchProPlan) -> Bool {
+        guard let product = product(for: plan) else { return true }
+        return product.subscription?.introductoryOffer != nil
     }
 
     func renewalText(for plan: CatchProPlan) -> String {
@@ -639,11 +774,36 @@ final class CatchProStore: ObservableObject {
     var annualDiscountBadgeText: String? {
         let monthlyPrice = priceDecimal(for: .monthly)
         let annualPrice = priceDecimal(for: .annual)
+        if let percentValue = discountPercent(monthlyPrice: monthlyPrice, annualPrice: annualPrice) {
+            return "Save \(percentValue)%"
+        }
+
+        guard let fallbackPercentValue = discountPercent(
+            monthlyPrice: CatchProPlan.monthly.fallbackPrice,
+            annualPrice: CatchProPlan.annual.fallbackPrice
+        ) else { return nil }
+        return "Save \(fallbackPercentValue)%"
+    }
+
+    var annualPercentChangeText: String? {
+        guard let percentValue = discountPercent(
+            monthlyPrice: priceDecimal(for: .monthly),
+            annualPrice: priceDecimal(for: .annual)
+        ) ?? discountPercent(
+            monthlyPrice: CatchProPlan.monthly.fallbackPrice,
+            annualPrice: CatchProPlan.annual.fallbackPrice
+        ) else { return nil }
+        return "-\(percentValue)%"
+    }
+
+    private func discountPercent(monthlyPrice: Decimal, annualPrice: Decimal) -> Int? {
         let yearlyMonthlyCost = monthlyPrice * Decimal(12)
         let savings = yearlyMonthlyCost - annualPrice
         guard savings > 0, yearlyMonthlyCost > 0 else { return nil }
         let percent = savings / yearlyMonthlyCost * Decimal(100)
-        return "-\(NSDecimalNumber(decimal: percent).intValue)%"
+        let percentValue = NSDecimalNumber(decimal: percent).intValue
+        guard percentValue > 0 else { return nil }
+        return percentValue
     }
 
     func purchase(_ plan: CatchProPlan) async -> Bool {
@@ -740,10 +900,14 @@ final class CatchProStore: ObservableObject {
     private func currencyString(_ value: Decimal) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
-        formatter.currencyCode = Locale.current.currency?.identifier ?? "USD"
+        formatter.currencyCode = productCurrencyCode ?? "SGD"
         formatter.maximumFractionDigits = 2
         formatter.minimumFractionDigits = NSDecimalNumber(decimal: value).doubleValue.rounded() == NSDecimalNumber(decimal: value).doubleValue ? 0 : 2
         return formatter.string(from: value as NSDecimalNumber) ?? "$\(value)"
+    }
+
+    private var productCurrencyCode: String? {
+        products.first?.priceFormatStyle.currencyCode
     }
 
     private func decimalString(_ value: Decimal) -> String {

@@ -8,8 +8,8 @@
   ],
   "settings" : {
     "_failTransactionsEnabled" : false,
-    "_locale" : "en_US",
-    "_storefront" : "USA",
+    "_locale" : "en_SG",
+    "_storefront" : "SGP",
     "_storeKitErrors" : [
 
     ]
@@ -33,11 +33,16 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "1.99",
+          "displayPrice" : "3.99",
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "catch-pro-monthly",
-          "introductoryOffer" : null,
+          "introductoryOffer" : {
+            "displayPrice" : "0.00",
+            "internalID" : "catch-pro-monthly-3-day-trial",
+            "paymentMode" : "freeTrial",
+            "subscriptionPeriod" : "P3D"
+          },
           "localizations" : [
             {
               "description" : "Monthly subscription to Catch",
@@ -62,7 +67,12 @@
           "familyShareable" : false,
           "groupNumber" : 2,
           "internalID" : "catch-pro-annual",
-          "introductoryOffer" : null,
+          "introductoryOffer" : {
+            "displayPrice" : "0.00",
+            "internalID" : "catch-pro-annual-3-day-trial",
+            "paymentMode" : "freeTrial",
+            "subscriptionPeriod" : "P3D"
+          },
           "localizations" : [
             {
               "description" : "Annual subscription to Catch",

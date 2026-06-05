@@ -24,11 +24,13 @@
 		A10000010000000000000016 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000016 /* ProfileView.swift */; };
 		A10000010000000000000023 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000023 /* Haptics.swift */; };
 		A10000010000000000000024 /* ProPaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000024 /* ProPaywallView.swift */; };
+		A10000010000000000000025 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000025 /* PrivacyInfo.xcprivacy */; };
 		D10000010000000000000001 /* CatchWidgetData.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000010000000000000001 /* CatchWidgetData.swift */; };
 		D10000010000000000000002 /* CatchWidgetData.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000010000000000000001 /* CatchWidgetData.swift */; };
 		D10000010000000000000003 /* CatchWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000010000000000000002 /* CatchWidgets.swift */; };
 		D10000010000000000000004 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D20000010000000000000005 /* Assets.xcassets */; };
 		D10000010000000000000005 /* CatchWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = D30000010000000000000001 /* CatchWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D10000010000000000000006 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000025 /* PrivacyInfo.xcprivacy */; };
 		C10000010000000000000001 /* CatchStopActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000010000000000000001 /* CatchStopActivityAttributes.swift */; };
 		C10000010000000000000002 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000010000000000000002 /* LiveActivityManager.swift */; };
 		C10000010000000000000003 /* CatchLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000010000000000000003 /* CatchLiveActivity.swift */; };
@@ -87,6 +89,7 @@
 		A20000010000000000000016 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		A20000010000000000000023 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		A20000010000000000000024 /* ProPaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProPaywallView.swift; sourceTree = "<group>"; };
+		A20000010000000000000025 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		D20000010000000000000001 /* CatchWidgetData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatchWidgetData.swift; sourceTree = "<group>"; };
 		D20000010000000000000002 /* CatchWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatchWidgets.swift; sourceTree = "<group>"; };
 		D20000010000000000000003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -142,6 +145,7 @@
 			children = (
 				A20000010000000000000001 /* CatchApp.swift */,
 				A20000010000000000000013 /* Info.plist */,
+				A20000010000000000000025 /* PrivacyInfo.xcprivacy */,
 				D20000010000000000000006 /* Catch.entitlements */,
 				A50000010000000000000003 /* Models */,
 				A50000010000000000000004 /* Views */,
@@ -332,6 +336,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000010000000000000011 /* Assets.xcassets in Resources */,
+				A10000010000000000000025 /* PrivacyInfo.xcprivacy in Resources */,
 				A10000010000000000000012 /* Preview Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -348,6 +353,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D10000010000000000000004 /* Assets.xcassets in Resources */,
+				D10000010000000000000006 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -611,6 +617,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 56N7X7AGCM;
+				APPLICATION_EXTENSION_API_ONLY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CatchLiveActivity/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -638,6 +645,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 56N7X7AGCM;
+				APPLICATION_EXTENSION_API_ONLY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CatchLiveActivity/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -666,6 +674,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 56N7X7AGCM;
+				APPLICATION_EXTENSION_API_ONLY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CatchWidgets/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -694,6 +703,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 56N7X7AGCM;
+				APPLICATION_EXTENSION_API_ONLY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CatchWidgets/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;

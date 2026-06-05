@@ -21,9 +21,8 @@ struct CatchApp: App {
                     .presentationDetents([.large])
             }
             .task {
-                if await CatchProStore.hasActiveProEntitlement() {
-                    appState.setProMembership(true)
-                }
+                let hasEntitlement = await CatchProStore.hasActiveProEntitlement()
+                appState.setProMembership(hasEntitlement)
             }
         }
     }

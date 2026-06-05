@@ -20,6 +20,7 @@ class AppState: ObservableObject {
         static let secondDayProPromptShown = "catch-second-day-pro-prompt-shown"
         static let pinnedBusServices = "catch-pinned-bus-services"
         static let pendingLiveBoardTrip = "catch-pending-live-board-trip"
+        static let notificationsEnabled = "catch-notifications-enabled"
     }
 
     @Published var nearbyStops: [NearbyStop] = []
@@ -42,7 +43,8 @@ class AppState: ObservableObject {
     @Published var showInsightCard = false
     @Published var isCatchItEnabled: Bool = true
     @Published var isLeaveNowAlertsEnabled: Bool = true
-    @Published var isSmartSuggestionsEnabled: Bool = true
+    @Published var isSmartSuggestionsEnabled: Bool = false
+    @Published var areNotificationsEnabled: Bool = false
     @Published var isProMember: Bool = false
     @Published var showProPaywall: Bool = false
     @Published var proPaywallContext: String = "Catch Pro"
@@ -50,10 +52,11 @@ class AppState: ObservableObject {
 
     let locationManager = LocationManager()
     let freeSavedPlaceLimit = 3
-    private let forceOnboardingForPolishRun = true
+    private let forceOnboardingForPolishRun = false
     private let modelContainer: ModelContainer
     private let modelContext: ModelContext
     private var hasLoadedStops = false
+    private var lastCatchabilityRefreshLocation: CLLocation?
     private var pendingLiveBoardTrip: PendingLiveBoardTrip?
     private var cancellables = Set<AnyCancellable>()
 
@@ -77,15 +80,17 @@ class AppState: ObservableObject {
             hasCompletedOnboarding = false
             UserDefaults.standard.set(false, forKey: "catch-onboarding-done")
         } else {
-            hasCompletedOnboarding = appSettings()?.hasCompletedOnboarding ?? UserDefaults.standard.bool(forKey: "catch-onboarding-done")
+            hasCompletedOnboarding = (appSettings()?.hasCompletedOnboarding ?? false) || UserDefaults.standard.bool(forKey: "catch-onboarding-done")
         }
         persistAppSettings()
 
         locationManager.$location
             .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
-                self?.updateNearbyStops()
-                self?.completeLiveBoardTripIfReady()
+            .sink { [weak self] location in
+                guard let self else { return }
+                updateNearbyStops()
+                refreshCatchabilityIfNeeded(for: location)
+                completeLiveBoardTripIfReady()
             }
             .store(in: &cancellables)
 
@@ -100,6 +105,7 @@ class AppState: ObservableObject {
 
         Task { await loadBusStops() }
         Task { await refreshWidgetSnapshot() }
+        refreshNotificationSetting()
     }
 
     func loadBusStops() async {
@@ -111,7 +117,9 @@ class AppState: ObservableObject {
             updateNearbyStops()
             refreshCatchability()
         } catch {
+            #if DEBUG
             print("Failed to load bus stops: \(error)")
+            #endif
             locationError = "Failed to load bus stop data: \(error.localizedDescription)"
         }
         isLoadingStops = false
@@ -144,28 +152,33 @@ class AppState: ObservableObject {
     // MARK: - Saved Locations
 
     func loadSavedLocations() {
-        let defaults: [SavedLocation] = [
-            SavedLocation(id: "home", name: "Home", icon: "house.fill", colorHex: "5AC8FA", busStopCode: "21699", busStopDescription: "Summerdale", walkMinutes: 5),
-        ]
-
         let stored = fetchStoredLocations()
         if !stored.isEmpty {
-            let locations = stored.map(\.savedLocation)
-            savedLocations = locations.contains { $0.id == "home" } ? locations : defaults + locations
+            savedLocations = removeLegacyDefaultHomeIfNeeded(from: stored.map(\.savedLocation))
         } else {
             let savedData = UserDefaults.standard.data(forKey: DefaultsKey.savedLocations)
                 ?? UserDefaults.standard.data(forKey: DefaultsKey.legacySavedLocations)
 
             if let data = savedData,
                let legacy = try? JSONDecoder().decode([SavedLocation].self, from: data) {
-                let hasHome = legacy.contains { $0.id == "home" }
-                savedLocations = hasHome ? legacy : defaults + legacy
+                savedLocations = removeLegacyDefaultHomeIfNeeded(from: legacy)
             } else {
-                savedLocations = defaults
+                savedLocations = []
             }
         }
         saveSavedLocations()
         Task { await refreshWidgetSnapshot() }
+    }
+
+    private func removeLegacyDefaultHomeIfNeeded(from locations: [SavedLocation]) -> [SavedLocation] {
+        locations.filter { location in
+            !(location.id == "home"
+              && location.name == "Home"
+              && location.icon == "house.fill"
+              && location.busStopCode == "21699"
+              && location.busStopDescription == "Summerdale"
+              && location.walkMinutes == 5)
+        }
     }
 
     func saveSavedLocations() {
@@ -183,7 +196,7 @@ class AppState: ObservableObject {
 
     func addLocation(_ location: SavedLocation) {
         guard isProMember || savedLocations.count < freeSavedPlaceLimit else {
-            presentProPaywall(context: "Unlimited saved places")
+            presentProPaywall(context: "Unlimited saved stops")
             return
         }
         savedLocations.append(location)
@@ -283,7 +296,9 @@ class AppState: ObservableObject {
                 services: liveBoardServices(for: activeStopCode, services: sorted)
             )
         } catch {
+            #if DEBUG
             print("Live Board refresh error: \(error)")
+            #endif
         }
     }
 
@@ -349,7 +364,7 @@ class AppState: ObservableObject {
             ?? preferredLocation?.busStopDescription
             ?? preferredStop?.Description
             ?? selectedLocation?.busStopDescription
-            ?? CatchWidgetSnapshot.placeholder.stopName
+            ?? CatchWidgetSnapshot.empty.stopName
         var pinnedBuses: [CatchWidgetBus] = []
 
         if let preferredStopCode {
@@ -367,7 +382,9 @@ class AppState: ObservableObject {
                     let source = prioritizePinnedServices(sorted, pinned: pinned)
                     pinnedBuses = source.prefix(4).map { widgetBus(from: $0, walkMinutes: walkMinutes) }
                 } catch {
+                    #if DEBUG
                     print("Widget snapshot error: \(error)")
+                    #endif
                 }
             }
         } else if let selectedLocation {
@@ -382,7 +399,7 @@ class AppState: ObservableObject {
             stopCode: preferredStopCode ?? selectedLocation?.busStopCode,
             stopName: stopName,
             updatedAt: Date(),
-            pinnedBuses: pinnedBuses.isEmpty ? CatchWidgetSnapshot.placeholder.pinnedBuses : pinnedBuses,
+            pinnedBuses: pinnedBuses,
             home: home,
             work: work,
             isProMember: isProMember
@@ -418,7 +435,9 @@ class AppState: ObservableObject {
             let source = preferPinned ? prioritizePinnedServices(sorted, pinned: pinned) : sorted
             return source.prefix(limit).map { widgetBus(from: $0, walkMinutes: location.walkMinutes) }
         } catch {
+            #if DEBUG
             print("Widget snapshot error: \(error)")
+            #endif
             return []
         }
     }
@@ -500,10 +519,13 @@ class AppState: ObservableObject {
     // MARK: - Feature Toggles
 
     func loadFeatureToggles() {
+        areNotificationsEnabled = UserDefaults.standard.bool(forKey: DefaultsKey.notificationsEnabled)
+
         if let settings = appSettings() {
             isCatchItEnabled = settings.isCatchItEnabled
             isLeaveNowAlertsEnabled = settings.isLeaveNowAlertsEnabled
-            isSmartSuggestionsEnabled = settings.isSmartSuggestionsEnabled
+            isSmartSuggestionsEnabled = false
+            areNotificationsEnabled = settings.areNotificationsEnabled
         } else {
             if UserDefaults.standard.object(forKey: "catch-catch-it-enabled") != nil {
                 isCatchItEnabled = UserDefaults.standard.bool(forKey: "catch-catch-it-enabled")
@@ -511,9 +533,7 @@ class AppState: ObservableObject {
             if UserDefaults.standard.object(forKey: "catch-leave-now-enabled") != nil {
                 isLeaveNowAlertsEnabled = UserDefaults.standard.bool(forKey: "catch-leave-now-enabled")
             }
-            if UserDefaults.standard.object(forKey: "catch-smart-suggestions-enabled") != nil {
-                isSmartSuggestionsEnabled = UserDefaults.standard.bool(forKey: "catch-smart-suggestions-enabled")
-            }
+            isSmartSuggestionsEnabled = false
         }
     }
 
@@ -535,30 +555,78 @@ class AppState: ObservableObject {
 
     func saveSmartSuggestions(_ value: Bool) {
         guard isProMember || value == false else {
-            presentProPaywall(context: "Routine memory")
+            presentProPaywall(context: "Catch Pro")
             return
         }
-        isSmartSuggestionsEnabled = value
+        isSmartSuggestionsEnabled = false
         persistAppSettings()
-        UserDefaults.standard.set(value, forKey: "catch-smart-suggestions-enabled")
+        UserDefaults.standard.set(false, forKey: "catch-smart-suggestions-enabled")
+    }
+
+    func saveNotificationsEnabled(_ value: Bool) {
+        if value {
+            requestNotificationPermission { [weak self] granted in
+                Task { @MainActor in
+                    guard let self else { return }
+                    self.saveNotificationPermissionResult(granted)
+                }
+            }
+        } else {
+            saveNotificationPermissionResult(false)
+            UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        }
+    }
+
+    func saveNotificationPermissionResult(_ granted: Bool) {
+        areNotificationsEnabled = granted
+        persistAppSettings()
+        UserDefaults.standard.set(granted, forKey: DefaultsKey.notificationsEnabled)
+    }
+
+    func refreshNotificationSetting() {
+        UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
+            Task { @MainActor in
+                guard let self else { return }
+                if settings.authorizationStatus == .denied || settings.authorizationStatus == .notDetermined {
+                    self.areNotificationsEnabled = false
+                    self.persistAppSettings()
+                    UserDefaults.standard.set(false, forKey: DefaultsKey.notificationsEnabled)
+                }
+            }
+        }
     }
 
     // MARK: - Pro
 
     func loadProState() {
-        isProMember = appSettings()?.isProMember ?? UserDefaults.standard.bool(forKey: DefaultsKey.isProMember)
-        CatchWidgetStore.saveProMembership(isProMember)
-        if !isProMember {
-            isLeaveNowAlertsEnabled = false
-            isSmartSuggestionsEnabled = false
+        #if DEBUG
+        isProMember = false
+        isLeaveNowAlertsEnabled = false
+        isSmartSuggestionsEnabled = false
+        UserDefaults.standard.set(false, forKey: DefaultsKey.isProMember)
+        CatchWidgetStore.saveProMembership(false)
+        if let settings = appSettings() {
+            settings.isProMember = false
+            settings.isLeaveNowAlertsEnabled = false
+            settings.isSmartSuggestionsEnabled = false
+            try? modelContext.save()
         }
+        #else
+        isProMember = false
+        isLeaveNowAlertsEnabled = false
+        isSmartSuggestionsEnabled = false
+        CatchWidgetStore.saveProMembership(false)
+        #endif
     }
 
     func setProMembership(_ value: Bool) {
         isProMember = value
         if value {
             isLeaveNowAlertsEnabled = true
-            isSmartSuggestionsEnabled = true
+            isSmartSuggestionsEnabled = false
+        } else {
+            isLeaveNowAlertsEnabled = false
+            isSmartSuggestionsEnabled = false
         }
         persistAppSettings()
         UserDefaults.standard.set(value, forKey: DefaultsKey.isProMember)
@@ -569,11 +637,6 @@ class AppState: ObservableObject {
         if value {
             showProPaywall = false
         }
-    }
-
-    func joinPro() {
-        setProMembership(true)
-        showProPaywall = false
     }
 
     func presentProPaywall(context: String = "Catch Pro") {
@@ -628,6 +691,7 @@ class AppState: ObservableObject {
         guard let location = locationManager.location else { return }
         let validLocations = savedLocations.filter { !$0.busStopCode.isEmpty }
         guard !validLocations.isEmpty else { return }
+        lastCatchabilityRefreshLocation = location
 
         var closestLoc = validLocations[0]
         var closestDistance = Double.infinity
@@ -688,20 +752,35 @@ class AppState: ObservableObject {
 
                 checkLeaveNowAlert(results: results, stopName: closestLoc.busStopDescription)
             } catch {
+                #if DEBUG
                 print("Catchability error: \(error)")
+                #endif
             }
             isLoadingCatchability = false
         }
     }
 
+    private func refreshCatchabilityIfNeeded(for location: CLLocation?) {
+        guard let location, hasLoadedStops, isProMember, isCatchItEnabled, !isLoadingCatchability else { return }
+        if let lastCatchabilityRefreshLocation,
+           location.distance(from: lastCatchabilityRefreshLocation) < 80,
+           !catchabilityResults.isEmpty {
+            return
+        }
+        refreshCatchability()
+    }
+
 
     // MARK: - Smart Leave Now Alert
 
-    private func requestNotificationPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+    func requestNotificationPermission(completion: ((Bool) -> Void)? = nil) {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+            completion?(granted)
+        }
     }
 
     private func checkLeaveNowAlert(results: [CatchabilityResult], stopName: String) {
+        guard isProMember && areNotificationsEnabled && isLeaveNowAlertsEnabled else { return }
         guard let urgent = results.first(where: { $0.level == .tight && $0.leaveInMinutes <= 3 && $0.leaveInMinutes >= 0 }) else { return }
 
         let lastAlertKey = "catch-last-alert-\(urgent.busService)"
@@ -923,7 +1002,7 @@ class AppState: ObservableObject {
     }
 
     private func analyzePatterns(logs: [CommuteLogEntry]) {
-        guard isProMember else { return }
+        guard isProMember, isSmartSuggestionsEnabled else { return }
         UserDefaults.standard.set(Date(), forKey: "catch-last-pattern-analysis")
         guard let insight = Self.localCommuteInsight(from: logs), hasRecognizablePattern(in: logs) else { return }
         commuteInsight = insight
@@ -1010,6 +1089,7 @@ private extension AppState {
         settings.isCatchItEnabled = isCatchItEnabled
         settings.isLeaveNowAlertsEnabled = isLeaveNowAlertsEnabled
         settings.isSmartSuggestionsEnabled = isSmartSuggestionsEnabled
+        settings.areNotificationsEnabled = areNotificationsEnabled
         settings.isProMember = isProMember
         settings.commuteInsight = commuteInsight
         try? modelContext.save()
@@ -1132,7 +1212,8 @@ final class StoredAppSettings {
     var hasCompletedOnboarding: Bool = false
     var isCatchItEnabled: Bool = true
     var isLeaveNowAlertsEnabled: Bool = true
-    var isSmartSuggestionsEnabled: Bool = true
+    var isSmartSuggestionsEnabled: Bool = false
+    var areNotificationsEnabled: Bool = false
     var isProMember: Bool = false
     var firstUseDate: Date?
     var secondDayProPromptShown: Bool = false

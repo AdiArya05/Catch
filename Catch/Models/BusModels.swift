@@ -59,14 +59,24 @@ struct BusInfo: Codable {
 enum LoadLevel {
     case seats, standing, limited, unknown
 
-    var color: Color {
+    var label: String {
         switch self {
-        case .seats: return .green
-        case .standing: return .yellow
-        case .limited: return .red
-        case .unknown: return .gray
+        case .seats: return "Seats available"
+        case .standing: return "Standing available"
+        case .limited: return "Limited standing"
+        case .unknown: return "Crowding unknown"
         }
     }
+
+    var color: Color {
+        switch self {
+        case .seats: return Color(hex: "30D158")
+        case .standing: return Color(hex: "FFB02E")
+        case .limited: return Color(hex: "FF453A")
+        case .unknown: return Color(hex: "8E8E93")
+        }
+    }
+
 }
 
 // MARK: - Bus Stop
@@ -137,16 +147,16 @@ struct SavedLocation: Codable, Identifiable {
 
     static func defaultColorHex(for name: String) -> String {
         switch name.lowercased() {
-        case "home": return "5AC8FA"
-        case "work": return "F5A623"
+        case "home": return "0A84FF"
+        case "work": return "FF9F0A"
         case "office": return "BF5AF2"
-        case "school": return "4CD964"
-        case "college": return "64D2FF"
-        case "mall": return "FF6B6B"
+        case "school": return "30D158"
+        case "college": return "00C7BE"
+        case "mall": return "FF453A"
         case "gym": return "FFD60A"
-        case "restaurant": return "FF9F0A"
+        case "restaurant": return "FF2D55"
         case "park": return "30D158"
-        case "temple": return "FFD60A"
+        case "temple": return "AF52DE"
         default: return "BF5AF2"
         }
     }

@@ -116,7 +116,7 @@ struct BusStopDetailView: View {
                             .foregroundColor(.secondary)
 
                         if savedLocation != nil {
-                            stopChip("Usual stop", color: Color(hex: "5AC8FA"), icon: "pin.fill")
+                            stopChip("Pinned", color: Color(hex: "5AC8FA"), icon: "pin.fill")
                         }
 
                         if let walkMinutes {
@@ -285,6 +285,8 @@ struct BusStopDetailView: View {
             Text(text)
                 .font(.system(size: 11, weight: .bold))
                 .tracking(11 * -0.025)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .foregroundColor(color)
         .padding(.horizontal, 8)
@@ -364,6 +366,7 @@ struct BusStopDetailView: View {
                     Image(systemName: "figure.roll")
                         .font(.system(size: 10, weight: .bold))
                 }
+
             }
             .foregroundColor(timingMetaColor)
             .frame(height: 13)
@@ -437,7 +440,9 @@ struct BusStopDetailView: View {
                 services: sortedServices
             )
         } catch {
+            #if DEBUG
             print("Failed to load arrivals: \(error)")
+            #endif
         }
         isLoading = false
     }
@@ -448,23 +453,10 @@ struct BusStopDetailView: View {
             appState.cancelLiveBoardTripTracking()
             isWatchingLiveActivity = false
         } else {
-            var targetCode = busStopCode
-            var targetName = busStopName
-            var targetWalkMinutes = walkMinutes
-            var targetServices = services
-
-            if let nearest = appState.nearbyStops.first {
-                targetCode = nearest.stop.BusStopCode
-                targetName = nearest.stop.Description
-                targetWalkMinutes = appState.estimatedWalkMinutes(to: nearest)
-
-                do {
-                    let response = try await LTAService.shared.fetchBusArrivals(busStopCode: targetCode)
-                    targetServices = sortedServices(response.Services)
-                } catch {
-                    print("Failed to load nearest stop for Live Board: \(error)")
-                }
-            }
+            let targetCode = busStopCode
+            let targetName = busStopName
+            let targetWalkMinutes = walkMinutes
+            let targetServices = services
 
             await LiveActivityManager.shared.startStopWatch(
                 stopCode: targetCode,

@@ -7,6 +7,7 @@ struct OnboardingView: View {
     @State private var currentStep = 0
     @State private var showHomeStopSearch = false
     @State private var showPresetStopSearch = false
+    @State private var showCustomLocationSetup = false
     @State private var selectedPresetName = ""
     @State private var selectedPresetIcon = ""
     @State private var showAddedConfirmation = false
@@ -103,19 +104,28 @@ struct OnboardingView: View {
             .environmentObject(appState)
             .presentationDetents([.large])
         }
+        .sheet(isPresented: $showCustomLocationSetup) {
+            AddLocationView(editingId: nil, onDone: {
+                showCustomLocationSetup = false
+            }, onSave: {
+                withAnimation(.easeInOut(duration: 0.3)) { currentStep = 5 }
+            }, startWithCustom: true)
+            .environmentObject(appState)
+            .presentationDetents([.large])
+        }
     }
 
     private func presetColor(for name: String) -> Color {
         switch name.lowercased() {
-        case "work": return Color(hex: "F5A623")
+        case "work": return Color(hex: "FF9F0A")
         case "office": return Color(hex: "BF5AF2")
-        case "school": return Color(hex: "4CD964")
-        case "college": return Color(hex: "64D2FF")
-        case "mall": return Color(hex: "FF6B6B")
+        case "school": return Color(hex: "30D158")
+        case "college": return Color(hex: "00C7BE")
+        case "mall": return Color(hex: "FF453A")
         case "gym": return Color(hex: "FFD60A")
-        case "restaurant": return Color(hex: "FF9F0A")
+        case "restaurant": return Color(hex: "FF2D55")
         case "park": return Color(hex: "30D158")
-        case "temple": return Color(hex: "FFD60A")
+        case "temple": return Color(hex: "AF52DE")
         default: return Color(hex: "BF5AF2")
         }
     }
@@ -391,15 +401,15 @@ struct OnboardingView: View {
 
     private var presetPills: some View {
         let presets: [(String, String, Color, Color)] = [
-            ("Work", "briefcase.fill", Color(hex: "4A3520"), Color(hex: "F5A623")),
+            ("Work", "briefcase.fill", Color(hex: "4A3020"), Color(hex: "FF9F0A")),
             ("Office", "building.2.fill", Color(hex: "3A2A4A"), Color(hex: "BF5AF2")),
-            ("School", "book.fill", Color(hex: "2A3A2A"), Color(hex: "4CD964")),
-            ("College", "graduationcap.fill", Color(hex: "1C3A3A"), Color(hex: "64D2FF")),
-            ("Mall", "bag.fill", Color(hex: "4A2A2A"), Color(hex: "FF6B6B")),
+            ("School", "book.fill", Color(hex: "1C3A20"), Color(hex: "30D158")),
+            ("College", "graduationcap.fill", Color(hex: "163C3A"), Color(hex: "00C7BE")),
+            ("Mall", "bag.fill", Color(hex: "4A2522"), Color(hex: "FF453A")),
             ("Gym", "dumbbell.fill", Color(hex: "3A3A1C"), Color(hex: "FFD60A")),
-            ("Restaurant", "fork.knife", Color(hex: "4A3020"), Color(hex: "FF9F0A")),
+            ("Restaurant", "fork.knife", Color(hex: "4A1F2A"), Color(hex: "FF2D55")),
             ("Park", "leaf.fill", Color(hex: "1C3A20"), Color(hex: "30D158")),
-            ("Temple", "building.columns.fill", Color(hex: "4A3A1C"), Color(hex: "FFD60A")),
+            ("Temple", "building.columns.fill", Color(hex: "351F42"), Color(hex: "AF52DE")),
             ("Custom", "mappin", Color(hex: "2A2A2A"), Color(hex: "AAAAAA")),
         ]
 
@@ -432,6 +442,10 @@ struct OnboardingView: View {
     private func presetPill(name: String, icon: String, bg: Color, fg: Color) -> some View {
         Button(action: {
             Haptics.tap(.medium)
+            if name == "Custom" {
+                showCustomLocationSetup = true
+                return
+            }
             selectedPresetName = name
             selectedPresetIcon = icon
             showPresetStopSearch = true
@@ -480,8 +494,9 @@ struct OnboardingView: View {
 
             Button(action: {
                 Haptics.tap(.medium)
-                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in
+                appState.requestNotificationPermission { granted in
                     DispatchQueue.main.async {
+                        appState.saveNotificationPermissionResult(granted)
                         withAnimation(.easeInOut(duration: 0.3)) { currentStep = 6 }
                     }
                 }
@@ -519,8 +534,10 @@ struct OnboardingView: View {
     }
 
     private func finishOnboarding() {
-        appState.locationManager.requestPermission()
-        appState.locationManager.startUpdating()
+        let status = appState.locationManager.authorizationStatus
+        if status == .authorizedWhenInUse || status == .authorizedAlways {
+            appState.locationManager.startUpdating()
+        }
         withAnimation(.easeInOut(duration: 0.3)) {
             appState.completeOnboarding()
         }
@@ -530,8 +547,7 @@ struct OnboardingView: View {
         let features: [(String, String, Color)] = [
             ("Smart alerts", "bell.badge.fill", Color(hex: "FF9F0A")),
             ("Live Board", "rectangle.3.group.bubble.left.fill", Color(hex: "5AC8FA")),
-            ("Route memory", "brain.head.profile", Color(hex: "FFD60A")),
-            ("Saved places", "mappin.circle.fill", Color(hex: "4CD964")),
+            ("Unlimited saved stops", "bookmark.fill", Color(hex: "4CD964")),
             ("All icons", "app.badge.fill", Color(hex: "BF5AF2"))
         ]
 

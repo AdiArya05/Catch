@@ -12,17 +12,17 @@ struct LocationPreset: Identifiable {
 }
 
 private let locationPresets: [LocationPreset] = [
-    LocationPreset(name: "Home", icon: "house.fill", colorHex: "5AC8FA", bgColor: Color(hex: "1C3A5C"), fgColor: Color(hex: "5AC8FA")),
-    LocationPreset(name: "Work", icon: "briefcase.fill", colorHex: "F5A623", bgColor: Color(hex: "4A3520"), fgColor: Color(hex: "F5A623")),
+    LocationPreset(name: "Home", icon: "house.fill", colorHex: "0A84FF", bgColor: Color(hex: "102A4A"), fgColor: Color(hex: "0A84FF")),
+    LocationPreset(name: "Work", icon: "briefcase.fill", colorHex: "FF9F0A", bgColor: Color(hex: "4A3020"), fgColor: Color(hex: "FF9F0A")),
     LocationPreset(name: "Office", icon: "building.2.fill", colorHex: "BF5AF2", bgColor: Color(hex: "3A2A4A"), fgColor: Color(hex: "BF5AF2")),
     LocationPreset(name: "School", icon: "book.fill", colorHex: "4CD964", bgColor: Color(hex: "2A3A2A"), fgColor: Color(hex: "4CD964")),
-    LocationPreset(name: "College", icon: "graduationcap.fill", colorHex: "64D2FF", bgColor: Color(hex: "1C3A3A"), fgColor: Color(hex: "64D2FF")),
-    LocationPreset(name: "Mall", icon: "bag.fill", colorHex: "FF6B6B", bgColor: Color(hex: "4A2A2A"), fgColor: Color(hex: "FF6B6B")),
+    LocationPreset(name: "College", icon: "graduationcap.fill", colorHex: "00C7BE", bgColor: Color(hex: "163C3A"), fgColor: Color(hex: "00C7BE")),
+    LocationPreset(name: "Mall", icon: "bag.fill", colorHex: "FF453A", bgColor: Color(hex: "4A2522"), fgColor: Color(hex: "FF453A")),
     LocationPreset(name: "Gym", icon: "dumbbell.fill", colorHex: "FFD60A", bgColor: Color(hex: "3A3A1C"), fgColor: Color(hex: "FFD60A")),
-    LocationPreset(name: "Restaurant", icon: "fork.knife", colorHex: "FF9F0A", bgColor: Color(hex: "4A3020"), fgColor: Color(hex: "FF9F0A")),
+    LocationPreset(name: "Restaurant", icon: "fork.knife", colorHex: "FF2D55", bgColor: Color(hex: "4A1F2A"), fgColor: Color(hex: "FF2D55")),
     LocationPreset(name: "Hospital", icon: "cross.fill", colorHex: "FF453A", bgColor: Color(hex: "3A1C1C"), fgColor: Color(hex: "FF453A")),
     LocationPreset(name: "Park", icon: "leaf.fill", colorHex: "30D158", bgColor: Color(hex: "1C3A20"), fgColor: Color(hex: "30D158")),
-    LocationPreset(name: "Temple", icon: "building.columns.fill", colorHex: "FFD60A", bgColor: Color(hex: "4A3A1C"), fgColor: Color(hex: "FFD60A")),
+    LocationPreset(name: "Temple", icon: "building.columns.fill", colorHex: "AF52DE", bgColor: Color(hex: "351F42"), fgColor: Color(hex: "AF52DE")),
     LocationPreset(name: "Custom", icon: "mappin", colorHex: "AAAAAA", bgColor: Color(hex: "2A2A2A"), fgColor: Color(hex: "AAAAAA")),
 ]
 
@@ -32,7 +32,12 @@ struct AddLocationView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.colorScheme) private var colorScheme
     let editingId: String?
+    var initialBusStopCode: String? = nil
+    var initialBusStopDescription: String? = nil
+    var initialWalkMinutes: Int? = nil
     let onDone: () -> Void
+    var onSave: (() -> Void)? = nil
+    var startWithCustom: Bool = false
 
     @State private var selectedPreset: LocationPreset?
     @State private var customName = ""
@@ -40,7 +45,7 @@ struct AddLocationView: View {
     @State private var busStopDescription = ""
     @State private var searchQuery = ""
     @State private var selectedIcon = "mappin"
-    @State private var selectedColorHex = "5AC8FA"
+    @State private var selectedColorHex = "0A84FF"
 
     private var bgColor: Color { colorScheme == .dark ? Color(hex: "292929") : Color(hex: "F5F5F5") }
     private var cardBg: Color { colorScheme == .dark ? Color(hex: "1E1E1E") : Color.white }
@@ -85,6 +90,16 @@ struct AddLocationView: View {
                 busStopDescription = loc.busStopDescription
                 selectedIcon = loc.icon
                 selectedColorHex = loc.colorHex
+            } else if startWithCustom, selectedPreset == nil {
+                let customPreset = locationPresets.first { $0.name == "Custom" }
+                selectedPreset = customPreset
+                selectedIcon = customPreset?.icon ?? "mappin"
+                selectedColorHex = customPreset?.colorHex ?? "AAAAAA"
+            }
+
+            if !isEditing, let initialBusStopCode, let initialBusStopDescription {
+                busStopCode = initialBusStopCode
+                busStopDescription = initialBusStopDescription
             }
         }
     }
@@ -205,7 +220,7 @@ struct AddLocationView: View {
                         .clipShape(Circle())
                 }
 
-                Image(systemName: preset.icon)
+                Image(systemName: selectedIcon)
                     .font(.system(size: 18, weight: .bold))
                     .foregroundColor(Color(hex: selectedColorHex))
                     .frame(width: 40, height: 40)
@@ -233,6 +248,12 @@ struct AddLocationView: View {
             colorPickerSection
                 .padding(.horizontal, 20)
                 .padding(.bottom, 18)
+
+            if preset.name == "Custom" {
+                iconPickerSection
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 18)
+            }
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("Which bus stop do you usually take?")
@@ -379,15 +400,15 @@ struct AddLocationView: View {
     ]
 
     private let colorOptions: [(name: String, hex: String)] = [
-        ("Blue", "5AC8FA"),
-        ("Orange", "F5A623"),
+        ("Blue", "0A84FF"),
+        ("Orange", "FF9F0A"),
         ("Purple", "BF5AF2"),
-        ("Green", "4CD964"),
-        ("Cyan", "64D2FF"),
-        ("Red", "FF6B6B"),
+        ("Green", "30D158"),
+        ("Teal", "00C7BE"),
+        ("Red", "FF453A"),
         ("Yellow", "FFD60A"),
-        ("Pink", "FF5AC8"),
-        ("Gray", "AAAAAA"),
+        ("Pink", "FF2D55"),
+        ("Gray", "8E8E93"),
     ]
 
     private var colorPickerSection: some View {
@@ -435,25 +456,7 @@ struct AddLocationView: View {
                         .foregroundColor(.primary)
                 }
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Icon")
-                    .font(.system(size: 13, weight: .bold))
-                    .tracking(13 * -0.025)
-                    .foregroundColor(.secondary)
-
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 6), spacing: 10) {
-                    ForEach(iconOptions, id: \.0) { icon, _ in
-                        Button(action: { selectedIcon = icon }) {
-                            Image(systemName: icon)
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(selectedIcon == icon ? Color(hex: selectedColorHex) : .secondary)
-                                .frame(width: 48, height: 48)
-                                .background(selectedIcon == icon ? Color(hex: selectedColorHex).opacity(colorScheme == .dark ? 0.22 : 0.16) : cardBg)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                    }
-                }
-            }
+            iconPickerSection
 
             colorPickerSection
 
@@ -568,6 +571,30 @@ struct AddLocationView: View {
         !effectiveName.isEmpty && !busStopCode.isEmpty
     }
 
+    private var iconPickerSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Icon")
+                .font(.system(size: 13, weight: .bold))
+                .tracking(13 * -0.025)
+                .foregroundColor(.secondary)
+
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 6), spacing: 10) {
+                ForEach(iconOptions, id: \.0) { icon, _ in
+                    Button(action: { selectedIcon = icon }) {
+                        Image(systemName: icon)
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(selectedIcon == icon ? Color(hex: selectedColorHex) : .secondary)
+                            .frame(width: 48, height: 48)
+                            .background(selectedIcon == icon ? Color(hex: selectedColorHex).opacity(colorScheme == .dark ? 0.22 : 0.16) : cardBg)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .accessibilityLabel(iconOptions.first(where: { $0.0 == icon })?.1 ?? "Icon")
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private var effectiveName: String {
         customName.isEmpty ? (selectedPreset?.name ?? "") : customName
     }
@@ -575,11 +602,14 @@ struct AddLocationView: View {
     private func save() {
         Haptics.tap(.medium)
         if editingId == nil && !appState.isProMember && appState.savedLocations.count >= appState.freeSavedPlaceLimit {
-            appState.presentProPaywall(context: "Unlimited saved places")
+            onDone()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+                appState.presentProPaywall(context: "Unlimited saved stops")
+            }
             return
         }
         let finalName = effectiveName
-        let finalIcon = isEditing ? selectedIcon : (selectedPreset?.icon ?? "mappin")
+        let finalIcon = (isEditing || selectedPreset?.name == "Custom") ? selectedIcon : (selectedPreset?.icon ?? "mappin")
 
         if let id = editingId {
             appState.updateLocation(id: id, name: finalName, icon: finalIcon, colorHex: selectedColorHex, busStopCode: busStopCode, description: busStopDescription)
@@ -590,10 +620,12 @@ struct AddLocationView: View {
                 icon: finalIcon,
                 colorHex: selectedColorHex,
                 busStopCode: busStopCode,
-                busStopDescription: busStopDescription
+                busStopDescription: busStopDescription,
+                walkMinutes: initialBusStopCode == busStopCode ? (initialWalkMinutes ?? 5) : 5
             )
             appState.addLocation(loc)
         }
+        onSave?()
         onDone()
     }
 }

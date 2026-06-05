@@ -1,11 +1,22 @@
 import SwiftUI
 import UIKit
+import StoreKit
+
+private enum CatchLegalURL {
+    static let privacy = URL(string: "https://adiarya05.github.io/Catch/privacy.html")!
+    static let terms = URL(string: "https://adiarya05.github.io/Catch/terms.html")!
+    static let website = URL(string: "https://catchbyadi.framer.website/")!
+    static let x = URL(string: "https://x.com/adiarya05")!
+    static let feedback = URL(string: "mailto:adityaarya1021@gmail.com?subject=Catch%20Feedback")!
+}
 
 struct SettingsView: View {
     var onDismiss: (() -> Void)?
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openURL) private var openURL
+    @Environment(\.requestReview) private var requestReview
     @State private var showSavedPlaces = false
     @State private var showEditName = false
     @State private var editedName = ""
@@ -104,8 +115,8 @@ struct SettingsView: View {
                     }
                     dotLine
 
-                    // Leave-Now Alerts
-                    row(icon: "bell.badge.fill", iconColor: Color(hex: "FF9F0A"), label: "Leave-Now Alerts", isPro: true) {
+                    // Leave Alerts
+                    row(icon: "bell.badge.fill", iconColor: Color(hex: "FF9F0A"), label: "Leave Alerts", isPro: true) {
                         Toggle("", isOn: Binding(
                             get: { appState.isProMember && appState.isLeaveNowAlertsEnabled },
                             set: { newValue in
@@ -121,40 +132,25 @@ struct SettingsView: View {
                     }
                     dotLine
 
-                    // Smart Suggestions
-                    row(icon: "sparkles", iconColor: Color(hex: "FFD60A"), label: "Smart Suggestions", isPro: true) {
-                        Toggle("", isOn: Binding(
-                            get: { appState.isProMember && appState.isSmartSuggestionsEnabled },
-                            set: { newValue in
-                                guard appState.isProMember else {
-                                    presentSettingsProPaywall(context: "Route memory")
-                                    return
-                                }
-                                appState.saveSmartSuggestions(newValue)
-                            }
-                        ))
-                        .labelsHidden()
-                        .tint(Color(hex: "34C759"))
-                    }
-                    dotLine
-
                     // Notifications
                     row(icon: "bell.fill", iconColor: Color(hex: "FF453A"), label: "Notifications") {
-                        Toggle("", isOn: .constant(true))
+                        Toggle("", isOn: Binding(
+                            get: { appState.areNotificationsEnabled },
+                            set: { appState.saveNotificationsEnabled($0) }
+                        ))
                             .labelsHidden()
                             .tint(Color(hex: "34C759"))
                     }
                     dotLine
 
                     // Appearance
-                    row(icon: "moon.fill", iconColor: Color(hex: "BF5AF2"), label: "Appearance") {
-                        HStack(spacing: 14) {
-                            Text(appState.isDarkMode ? "Dark" : "Light")
-                                .font(.system(size: 19, weight: .semibold))
-                                .tracking(19 * -0.025)
-                                .foregroundColor(Color(hex: "8E8E93"))
-                                .lineLimit(1)
-                                .fixedSize(horizontal: true, vertical: false)
+                    row(icon: "slider.horizontal.3", iconColor: Color(hex: "BF5AF2"), label: "Appearance") {
+                        HStack(spacing: 12) {
+                            Image(systemName: appState.isDarkMode ? "moon.fill" : "sun.max.fill")
+                                .font(.system(size: 18, weight: .black))
+                                .foregroundColor(appState.isDarkMode ? Color(hex: "BF5AF2") : Color(hex: "FFCC00"))
+                                .frame(width: 24, height: 24)
+
                             Toggle("", isOn: Binding(
                                 get: { appState.isDarkMode },
                                 set: { appState.saveDarkMode($0) }
@@ -166,19 +162,80 @@ struct SettingsView: View {
                     dotLine
 
                     // Terms of Service
-                    row(icon: "doc.text.fill", iconColor: Color(hex: "8E8E93"), label: "Terms of Service") {
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 19, weight: .bold))
-                            .foregroundColor(Color(hex: "555555"))
+                    Button {
+                        openURL(CatchLegalURL.terms)
+                    } label: {
+                        row(icon: "doc.text.fill", iconColor: Color(hex: "8E8E93"), label: "Terms of Service") {
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 19, weight: .bold))
+                                .foregroundColor(Color(hex: "555555"))
+                        }
                     }
+                    .buttonStyle(.plain)
                     dotLine
 
                     // Privacy Policy
-                    row(icon: "lock.shield.fill", iconColor: Color(hex: "8E8E93"), label: "Privacy Policy") {
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 19, weight: .bold))
-                            .foregroundColor(Color(hex: "555555"))
+                    Button {
+                        openURL(CatchLegalURL.privacy)
+                    } label: {
+                        row(icon: "lock.shield.fill", iconColor: Color(hex: "8E8E93"), label: "Privacy Policy") {
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 19, weight: .bold))
+                                .foregroundColor(Color(hex: "555555"))
+                        }
                     }
+                    .buttonStyle(.plain)
+
+                    sectionTitle("About")
+                        .padding(.top, 34)
+                        .padding(.bottom, 10)
+
+                    ShareLink(item: CatchLegalURL.website) {
+                        row(icon: "square.and.arrow.up", iconColor: Color(hex: "FF9F0A"), label: "Share Catch") {
+                            EmptyView()
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    dotLine
+
+                    Button {
+                        requestReview()
+                    } label: {
+                        row(icon: "star", iconColor: Color(hex: "FFD60A"), label: "Leave a Review") {
+                            EmptyView()
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    dotLine
+
+                    Button {
+                        openURL(CatchLegalURL.feedback)
+                    } label: {
+                        row(icon: "envelope", iconColor: Color(hex: "5AC8FA"), label: "Send Feedback") {
+                            EmptyView()
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    dotLine
+
+                    Button {
+                        openURL(CatchLegalURL.x)
+                    } label: {
+                        xLogoRow(label: "Follow us on X")
+                    }
+                    .buttonStyle(.plain)
+                    dotLine
+
+                    Button {
+                        openURL(CatchLegalURL.website)
+                    } label: {
+                        row(icon: "link", iconColor: Color(hex: "30D158"), label: "Visit Catch website") {
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 19, weight: .bold))
+                                .foregroundColor(Color(hex: "555555"))
+                        }
+                    }
+                    .buttonStyle(.plain)
 
                     // Footer
                     VStack(spacing: 8) {
@@ -213,6 +270,9 @@ struct SettingsView: View {
             .toolbar(.hidden, for: .navigationBar)
         }
         .preferredColorScheme(appState.isDarkMode ? .dark : .light)
+        .onAppear {
+            appState.refreshNotificationSetting()
+        }
         .alert("Display Name", isPresented: $showEditName) {
             TextField("Name", text: $editedName)
             Button("Save") { appState.saveUserName(editedName) }
@@ -285,21 +345,19 @@ struct SettingsView: View {
                 .foregroundColor(iconColor)
                 .frame(width: 32, height: 32)
 
-            HStack(spacing: 10) {
-                Text(label)
-                    .font(.system(size: 20, weight: .semibold))
-                    .tracking(20 * -0.025)
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.68)
-
-                if isPro {
-                    proMark
-                }
-            }
-            .layoutPriority(1)
+            Text(label)
+                .font(.system(size: 20, weight: .semibold))
+                .tracking(20 * -0.025)
+                .foregroundColor(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(1.0)
+                .layoutPriority(2)
 
             Spacer()
+
+            if isPro, !appState.isProMember {
+                proLockMark
+            }
 
             trailing()
         }
@@ -308,12 +366,37 @@ struct SettingsView: View {
         .buttonStyle(.plain)
     }
 
-    private var proMark: some View {
-        Image(systemName: "sparkle")
-            .font(.system(size: 14, weight: .black))
-            .foregroundStyle(Color(hex: "0A84FF"))
-            .frame(width: 24, height: 24)
-            .background(Color(hex: "0A84FF").opacity(0.12), in: Circle())
+    private func xLogoRow(label: String) -> some View {
+        HStack(spacing: 22) {
+            Text("𝕏")
+                .font(.system(size: 26, weight: .bold))
+                .foregroundColor(.primary)
+                .frame(width: 32, height: 32)
+
+            Text(label)
+                .font(.system(size: 20, weight: .semibold))
+                .tracking(20 * -0.025)
+                .foregroundColor(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(1.0)
+                .layoutPriority(2)
+
+            Spacer()
+
+            Image(systemName: "arrow.up.right")
+                .font(.system(size: 19, weight: .bold))
+                .foregroundColor(Color(hex: "555555"))
+        }
+        .frame(minHeight: 76)
+        .contentShape(Rectangle())
+    }
+
+    private var proLockMark: some View {
+        Image(systemName: "lock.fill")
+            .font(.system(size: 9, weight: .black))
+            .foregroundStyle(Color(hex: "5AC8FA"))
+            .frame(width: 18, height: 18)
+            .background(Color(hex: "5AC8FA").opacity(0.12), in: Circle())
             .accessibilityLabel("Pro feature")
     }
 
@@ -334,6 +417,14 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity)
         }
         .frame(height: 2)
+    }
+
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: 17, weight: .bold))
+            .tracking(17 * -0.025)
+            .foregroundColor(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func changeAppIcon(to iconName: String?) {
@@ -367,6 +458,120 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+}
+
+private struct LegalTextView: View {
+    enum Kind {
+        case terms
+        case privacy
+
+        var title: String {
+            switch self {
+            case .terms: return "Terms of Service"
+            case .privacy: return "Privacy Policy"
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .terms: return "doc.text.fill"
+            case .privacy: return "lock.shield.fill"
+            }
+        }
+
+        var sections: [(String, String)] {
+            switch self {
+            case .terms:
+                return [
+                    ("Using Catch", "Catch helps you view Singapore bus arrivals, saved places, pinned stops, widgets, Live Board, Live Activities, and leave-now decisions. It is a planning aid, not an official transport source."),
+                    ("Transport data", "Catch uses third-party transport data such as LTA DataMall bus arrival information. Arrival times, vehicle details, accessibility, and crowding values may be delayed, incomplete, unavailable, or inaccurate."),
+                    ("Your responsibility", "You are responsible for your travel decisions and safety. Always follow official transport instructions, road safety rules, and instructions from transport staff."),
+                    ("Catch Pro", "Catch Pro may unlock smart leave-now alerts, Live Board, Dynamic Island, Live Activities, widgets, unlimited saved stops, app icons, and decision tools. Prices, periods, renewal terms, and trial terms are shown before purchase."),
+                    ("Subscriptions", "Subscriptions are processed by Apple through your Apple ID. They renew automatically unless canceled according to Apple's subscription rules. You can manage or cancel subscriptions in your Apple ID subscription settings."),
+                    ("Availability", "Some features require network access, location permission, notification permission, supported devices, compatible iOS versions, and third-party data availability.")
+                ]
+            case .privacy:
+                return [
+                    ("Local-first design", "Catch does not require an account in the current version. Saved places, pinned buses, app settings, and commute preferences are stored on your device."),
+                    ("Location", "If you allow location access, Catch uses your device location to show nearby stops, choose the most relevant saved place for Can I Catch It, and estimate walking time. Catch does not currently store your location history on a developer backend."),
+                    ("Widgets and Live Activities", "Some selected stop, bus, and timing data is shared through the app group on your device so widgets, Live Activities, and Dynamic Island can display current information."),
+                    ("Transport data", "Bus arrivals are fetched from LTA DataMall using bus stop codes. LTA or network providers may receive normal technical request information such as IP address as part of providing the service."),
+                    ("Notifications", "Leave-now alerts require notification permission and are generated from local bus timing logic. You can turn Catch notifications off in the app and manage system permission in iOS Settings."),
+                    ("Subscriptions", "Purchases are handled by Apple through StoreKit. Catch receives entitlement status to unlock Pro features, but does not receive your full payment card details."),
+                    ("No tracking", "Catch does not sell personal data, does not use third-party advertising SDKs, and does not track you across apps or websites for advertising.")
+                ]
+            }
+        }
+    }
+
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
+    let kind: Kind
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            (colorScheme == .dark ? Color(hex: "0F0F0F") : Color(hex: "F5F5F5")).ignoresSafeArea()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    Color.clear.frame(height: 64)
+
+                Image(systemName: kind.symbol)
+                    .font(.system(size: 34, weight: .black))
+                    .foregroundColor(Color(hex: "5AC8FA"))
+                    .frame(width: 64, height: 64)
+                    .background(Color(hex: "5AC8FA").opacity(colorScheme == .dark ? 0.16 : 0.10))
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                Text(kind.title)
+                    .font(.system(size: 32, weight: .bold))
+                    .tracking(32 * -0.025)
+
+                ForEach(kind.sections, id: \.0) { section in
+                    VStack(alignment: .leading, spacing: 7) {
+                        Text(section.0)
+                            .font(.system(size: 18, weight: .bold))
+                            .tracking(18 * -0.025)
+                        Text(section.1)
+                            .font(.system(size: 15, weight: .semibold))
+                            .tracking(15 * -0.025)
+                            .foregroundColor(.secondary)
+                            .lineSpacing(3)
+                    }
+                }
+
+                Text("Last updated: May 26, 2026")
+                    .font(.system(size: 13, weight: .bold))
+                    .tracking(13 * -0.025)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 10)
+                }
+                .padding(.horizontal, 28)
+                .padding(.top, 28)
+                .padding(.bottom, 40)
+            }
+
+            HStack {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.primary)
+                        .frame(width: 44, height: 44)
+                        .background(Color.primary.opacity(colorScheme == .dark ? 0.10 : 0.07))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+        }
+        .navigationTitle("")
+        .toolbar(.hidden, for: .navigationBar)
     }
 }
 
@@ -486,12 +691,23 @@ private struct AppIconPickerView: View {
 
 // MARK: - Saved Places List
 
+private struct SavedPlacesLocationEditorSheet: Identifiable {
+    let id: String
+    let editingId: String?
+
+    static let add = SavedPlacesLocationEditorSheet(id: "add", editingId: nil)
+
+    static func edit(_ id: String) -> SavedPlacesLocationEditorSheet {
+        SavedPlacesLocationEditorSheet(id: "edit-\(id)", editingId: id)
+    }
+}
+
 struct SavedPlacesListView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
-    @State private var showAddLocation = false
-    @State private var editingLocationId: String?
+    @State private var locationEditorSheet: SavedPlacesLocationEditorSheet?
+    @State private var showSavedPlacesProPaywall = false
 
     private var bgColor: Color { colorScheme == .dark ? Color(hex: "0F0F0F") : Color(hex: "F5F5F5") }
     private var dotColor: Color { colorScheme == .dark ? Color(hex: "3A3A3A") : Color(hex: "CCCCCC") }
@@ -506,8 +722,7 @@ struct SavedPlacesListView: View {
                             iconColor: iconColor(for: loc),
                             canDelete: loc.id != "home",
                             onTap: {
-                                editingLocationId = loc.id
-                                showAddLocation = true
+                                locationEditorSheet = .edit(loc.id)
                             },
                             onDelete: {
                                 Haptics.tap(.medium)
@@ -552,8 +767,12 @@ struct SavedPlacesListView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
-                        editingLocationId = nil
-                        showAddLocation = true
+                        if appState.isProMember || appState.savedLocations.count < appState.freeSavedPlaceLimit {
+                            locationEditorSheet = .add
+                        } else {
+                            appState.proPaywallContext = "Unlimited saved stops"
+                            showSavedPlacesProPaywall = true
+                        }
                     }) {
                         Image(systemName: "plus")
                             .font(.system(size: 14, weight: .semibold))
@@ -563,11 +782,15 @@ struct SavedPlacesListView: View {
             }
         }
         .preferredColorScheme(appState.isDarkMode ? .dark : .light)
-        .sheet(isPresented: $showAddLocation) {
-            AddLocationView(editingId: editingLocationId) {
-                showAddLocation = false
-                editingLocationId = nil
+        .sheet(item: $locationEditorSheet) { sheet in
+            AddLocationView(editingId: sheet.editingId) {
+                locationEditorSheet = nil
             }
+        }
+        .sheet(isPresented: $showSavedPlacesProPaywall) {
+            ProPaywallView()
+                .environmentObject(appState)
+                .presentationDetents([.large])
         }
     }
 

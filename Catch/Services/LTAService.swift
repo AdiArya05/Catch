@@ -8,10 +8,12 @@ class LTAService {
     private init() {}
 
     func fetchBusArrivals(busStopCode: String) async throws -> BusArrivalResponse {
-        let url = URL(string: "\(baseURL)/v3/BusArrival?BusStopCode=\(busStopCode)")!
-        var request = URLRequest(url: url)
+        var components = URLComponents(string: "\(baseURL)/v3/BusArrival")!
+        components.queryItems = [URLQueryItem(name: "BusStopCode", value: busStopCode)]
+        var request = URLRequest(url: components.url!)
+        request.timeoutInterval = 12
         request.setValue(apiKey, forHTTPHeaderField: "AccountKey")
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let data = try await perform(request)
         return try JSONDecoder().decode(BusArrivalResponse.self, from: data)
     }
 
@@ -19,10 +21,12 @@ class LTAService {
         var allStops: [BusStop] = []
         var skip = 0
         while true {
-            let url = URL(string: "\(baseURL)/BusStops?$skip=\(skip)")!
-            var request = URLRequest(url: url)
+            var components = URLComponents(string: "\(baseURL)/BusStops")!
+            components.queryItems = [URLQueryItem(name: "$skip", value: "\(skip)")]
+            var request = URLRequest(url: components.url!)
+            request.timeoutInterval = 18
             request.setValue(apiKey, forHTTPHeaderField: "AccountKey")
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let data = try await perform(request)
             let response = try JSONDecoder().decode(BusStopResponse.self, from: data)
             if response.value.isEmpty { break }
             allStops.append(contentsOf: response.value)
@@ -30,4 +34,17 @@ class LTAService {
         }
         return allStops
     }
+
+    private func perform(_ request: URLRequest) async throws -> Data {
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200..<300).contains(httpResponse.statusCode) else {
+            throw LTAServiceError.invalidResponse
+        }
+        return data
+    }
+}
+
+enum LTAServiceError: Error {
+    case invalidResponse
 }
