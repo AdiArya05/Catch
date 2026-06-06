@@ -84,7 +84,7 @@ com.adityaarya.catch.pro.monthly
 S$3.99/month
 3-day free trial
 
-com.adityaarya.catch.pro.annual
+com.adityaarya.catch.pro.yearly
 S$29.99/year
 3-day free trial
 ```
