@@ -56,7 +56,7 @@ Catch may offer Catch Pro as an auto-renewable subscription through Apple's In-A
 - app icons;
 - "Can I Catch It?" decision tools.
 
-Current planned Catch Pro pricing is S$3.99 per month or S$29.99 per year, with a 3-day free trial where available. Subscription prices, duration, trial availability, renewal terms, and cancellation terms are shown before purchase in the App Store purchase flow. Payment is charged to your Apple ID through Apple. Subscriptions renew automatically unless canceled according to Apple's subscription rules.
+Current planned Catch Pro pricing is S$3.98 per month or S$29.98 per year, with a 3-day free trial where available. Subscription prices, duration, trial availability, renewal terms, and cancellation terms are shown before purchase in the App Store purchase flow. Payment is charged to your Apple ID through Apple. Subscriptions renew automatically unless canceled according to Apple's subscription rules.
 
 You can manage or cancel subscriptions in your Apple ID subscription settings. Catch does not process your payment card details directly.
 

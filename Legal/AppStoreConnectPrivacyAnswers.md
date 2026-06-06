@@ -81,11 +81,11 @@ Products to create in App Store Connect:
 
 ```text
 com.adityaarya.catch.pro.monthly
-S$3.99/month
+S$3.98/month
 3-day free trial
 
 com.adityaarya.catch.pro.yearly
-S$29.99/year
+S$29.98/year
 3-day free trial
 ```
 

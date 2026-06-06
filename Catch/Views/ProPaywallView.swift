@@ -677,8 +677,8 @@ enum CatchProPlan: CaseIterable {
 
     var fallbackPrice: Decimal {
         switch self {
-        case .monthly: Decimal(string: "3.99") ?? Decimal(3)
-        case .annual: Decimal(string: "29.99") ?? Decimal(29)
+        case .monthly: Decimal(string: "3.98") ?? Decimal(3)
+        case .annual: Decimal(string: "29.98") ?? Decimal(29)
         }
     }
 }
