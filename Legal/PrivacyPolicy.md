@@ -1,6 +1,6 @@
 # Catch Privacy Policy
 
-Effective date: May 27, 2026
+Effective date: June 6, 2026
 
 Catch is a Singapore bus timing app that helps you view bus arrivals, saved places, widgets, Live Board, Live Activities, and leave-now decisions. This Privacy Policy explains what data Catch handles, how it is used, and what choices you have.
 
@@ -20,7 +20,7 @@ Catch is designed to be local-first.
 - Catch does not sell personal data.
 - Catch does not use third-party advertising SDKs.
 - Catch does not use tracking for targeted advertising.
-- Saved places, pinned buses, route memory, settings, and commute-related preferences are stored on your device.
+- Saved places, pinned buses, settings, and commute-related preferences are stored on your device.
 - Bus arrival data is fetched from the Land Transport Authority of Singapore DataMall.
 - Purchase and subscription processing is handled by Apple through StoreKit and the App Store.
 
@@ -74,7 +74,7 @@ Catch stores app settings and local app state, including:
 - feature toggles;
 - saved places;
 - pinned buses;
-- local route memory and commute logs used for app functionality.
+- local saved-place, pinned-stop, widget, and Live Activity state used for app functionality.
 
 This data is used to make Catch work, personalize routine transit decisions, and keep widgets and Live Activities consistent with your saved choices.
 
@@ -103,7 +103,7 @@ Catch uses data only for app functionality, including:
 - calculating "Can I Catch It?" decisions;
 - powering widgets, Live Activities, and Dynamic Island displays;
 - sending local leave-now notifications;
-- remembering route patterns locally;
+- remembering saved-place and pinned-stop preferences locally;
 - unlocking Pro features after purchase;
 - maintaining preferences such as display name and appearance.
 
@@ -126,7 +126,7 @@ Catch does not track you across apps or websites owned by other companies for ad
 
 ## 8. Retention
 
-Local app data remains on your device until you delete it in the app, reset the relevant setting, or delete the app. Examples include saved places, pinned buses, route memory, app preferences, and widget data.
+Local app data remains on your device until you delete it in the app, reset the relevant setting, or delete the app. Examples include saved places, pinned buses, app preferences, widget data, and Live Activity state.
 
 Because Catch does not currently operate a backend account database, deleting the app from your device removes the app's local data from that device, subject to normal iOS behavior and any device backups controlled by Apple.
 

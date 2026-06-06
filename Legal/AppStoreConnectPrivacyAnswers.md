@@ -1,6 +1,6 @@
 # Catch App Store Connect Privacy Answers
 
-Last reviewed: May 27, 2026
+Last reviewed: June 6, 2026
 
 Use this as the App Store Connect privacy-label draft for the current local-first Catch build. Re-check it whenever the app adds accounts, cloud sync, analytics, crash reporting, ads, a backend, or any new SDK.
 
@@ -34,7 +34,7 @@ Reason: Catch does not track users across apps or websites for advertising or ad
 
 Recommended answer for the current build: Data Not Collected by the developer.
 
-Reason: Catch is local-first. Location, saved places, pinned buses, route memory, settings, notification preferences, and widget/live activity state are processed or stored on device and are not transmitted to a Catch-controlled backend. Apple says data processed only on device is not considered collected for App Store privacy answers.
+Reason: Catch is local-first. Location, saved places, pinned buses, settings, notification preferences, and widget/live activity state are processed or stored on device and are not transmitted to a Catch-controlled backend. Apple says data processed only on device is not considered collected for App Store privacy answers.
 
 Important nuance:
 
@@ -98,5 +98,5 @@ Catch Pro
 Review note:
 
 ```text
-Catch Pro unlocks widgets, Live Board/Dynamic Island/Live Activities, smart leave-now alerts, route memory, unlimited saved places, all app icons, and Can I Catch It decision tools. The app is local-first and does not require an account.
+Catch Pro unlocks widgets, Live Board/Dynamic Island/Live Activities, smart leave-now alerts, unlimited saved stops, all app icons, and Can I Catch It decision tools. The app is local-first and does not require an account.
 ```

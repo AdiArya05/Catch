@@ -19,7 +19,7 @@
       "id" : "catch-pro",
       "localizations" : [
         {
-          "description" : "Unlock smart alerts, Live Board, route memory, saved places, and app icons.",
+          "description" : "Unlock smart alerts, Live Board, widgets, unlimited saved stops, and app icons.",
           "displayName" : "Catch Pro",
           "locale" : "en_US"
         }

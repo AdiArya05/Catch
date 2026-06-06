@@ -1,6 +1,6 @@
 # Catch Terms of Service
 
-Effective date: May 27, 2026
+Effective date: June 6, 2026
 
 These Terms of Service govern your use of Catch. Catch is a Singapore bus timing app that helps users view bus arrivals, saved places, widgets, Live Board, Live Activities, and leave-now decisions.
 
@@ -27,7 +27,7 @@ Catch helps you make routine bus decisions by showing:
 - "Can I Catch It?" decisions;
 - leave-now alerts;
 - widgets, Live Activities, and Dynamic Island displays;
-- local route memory and commute insights;
+- saved-place and pinned-stop preferences;
 - Catch Pro features.
 
 Catch is a planning aid. It is not an official transport service and does not guarantee that any bus will arrive, depart, stop, or be available at a specific time.
@@ -52,8 +52,7 @@ Catch may offer Catch Pro as an auto-renewable subscription through Apple's In-A
 
 - smart leave-now alerts;
 - Live Board, Dynamic Island, Live Activities, and widgets;
-- route memory;
-- more saved places;
+- unlimited saved stops;
 - app icons;
 - "Can I Catch It?" decision tools.
 

@@ -261,6 +261,13 @@ struct ProPaywallView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.76)
 
+            Text("Renews automatically after trial unless canceled.")
+                .font(.system(size: 13, weight: .semibold))
+                .tracking(13 * -0.025)
+                .foregroundStyle(.white.opacity(0.16))
+                .lineLimit(1)
+                .minimumScaleFactor(0.70)
+
             HStack(spacing: 10) {
                 Button("Terms") {
                     openURL(CatchPaywallLegalURL.terms)
