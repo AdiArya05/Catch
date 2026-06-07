@@ -339,21 +339,21 @@ struct SettingsView: View {
     }
 
     private func row<Trailing: View>(icon: String, iconColor: Color, label: String, isPro: Bool = false, @ViewBuilder trailing: () -> Trailing) -> some View {
-        HStack(spacing: 22) {
+        HStack(spacing: 18) {
             Image(systemName: icon)
                 .font(.system(size: 23, weight: .semibold))
                 .foregroundColor(iconColor)
                 .frame(width: 32, height: 32)
 
             Text(label)
-                .font(.system(size: 20, weight: .semibold))
-                .tracking(20 * -0.025)
+                .font(.system(size: 19, weight: .semibold))
+                .tracking(19 * -0.025)
                 .foregroundColor(.primary)
                 .lineLimit(1)
-                .minimumScaleFactor(1.0)
+                .minimumScaleFactor(0.78)
                 .layoutPriority(2)
 
-            Spacer()
+            Spacer(minLength: 8)
 
             if isPro, !appState.isProMember {
                 proLockMark
@@ -367,21 +367,21 @@ struct SettingsView: View {
     }
 
     private func xLogoRow(label: String) -> some View {
-        HStack(spacing: 22) {
+        HStack(spacing: 18) {
             Text("𝕏")
                 .font(.system(size: 26, weight: .bold))
                 .foregroundColor(.primary)
                 .frame(width: 32, height: 32)
 
             Text(label)
-                .font(.system(size: 20, weight: .semibold))
-                .tracking(20 * -0.025)
+                .font(.system(size: 19, weight: .semibold))
+                .tracking(19 * -0.025)
                 .foregroundColor(.primary)
                 .lineLimit(1)
-                .minimumScaleFactor(1.0)
+                .minimumScaleFactor(0.78)
                 .layoutPriority(2)
 
-            Spacer()
+            Spacer(minLength: 8)
 
             Image(systemName: "arrow.up.right")
                 .font(.system(size: 19, weight: .bold))
