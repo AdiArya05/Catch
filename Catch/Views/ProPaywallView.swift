@@ -15,6 +15,7 @@ struct ProPaywallView: View {
     @State private var selectedFeaturePage = 0
     @State private var isPricingExpanded = false
     @State private var isTrialButtonPulsing = false
+    var showsCloseButton = false
     var onClose: (() -> Void)?
     var onUnlock: (() -> Void)?
 
@@ -72,6 +73,35 @@ struct ProPaywallView: View {
                 .frame(maxWidth: .infinity)
             }
             .ignoresSafeArea()
+
+            if showsCloseButton {
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            Haptics.tap()
+                            closePaywall()
+                        }) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .black))
+                                .foregroundStyle(.white.opacity(0.58))
+                                .frame(width: 40, height: 40)
+                                .background(Color.white.opacity(0.08))
+                                .clipShape(Circle())
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Close")
+                    }
+                    .padding(.top, 18)
+                    .padding(.horizontal, 22)
+
+                    Spacer()
+                }
+            }
         }
         .preferredColorScheme(.dark)
         .task {

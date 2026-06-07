@@ -15,6 +15,7 @@ struct OnboardingView: View {
     @State private var addedPlaceColor: Color = .green
     @State private var proOfferEndDate = Date().addingTimeInterval(24 * 60 * 60)
     @State private var onboardingName = ""
+    @FocusState private var isNameFieldFocused: Bool
     private var hasEnteredOnboardingName: Bool {
         !onboardingName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
@@ -200,14 +201,26 @@ struct OnboardingView: View {
                 .font(.system(size: 36, weight: .bold))
                 .tracking(36 * -0.025)
                 .foregroundColor(.white)
+                .lineLimit(2)
+                .minimumScaleFactor(0.92)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.bottom, 16)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    isNameFieldFocused = true
+                }
 
             Text("Catch uses this for your home brief and settings. You can change it later.")
                 .font(.system(size: 16, weight: .bold))
                 .tracking(16 * -0.025)
                 .foregroundColor(.white.opacity(0.5))
                 .lineSpacing(4)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.bottom, 28)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    isNameFieldFocused = true
+                }
 
             TextField("Your name", text: $onboardingName)
                 .font(.system(size: 18, weight: .bold))
@@ -216,6 +229,7 @@ struct OnboardingView: View {
                 .tint(Color(hex: "5AC8FA"))
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
+                .focused($isNameFieldFocused)
                 .padding(.horizontal, 18)
                 .frame(height: 58)
                 .background(Color.white.opacity(0.10))
@@ -250,6 +264,9 @@ struct OnboardingView: View {
         .onAppear {
             if onboardingName.isEmpty {
                 onboardingName = appState.userName == "Adi" ? "" : appState.userName
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                isNameFieldFocused = true
             }
         }
     }
@@ -527,6 +544,7 @@ struct OnboardingView: View {
 
     private var allSetScreen: some View {
         ProPaywallView(
+            showsCloseButton: true,
             onClose: finishOnboarding,
             onUnlock: finishOnboarding
         )
