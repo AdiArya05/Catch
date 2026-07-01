@@ -345,19 +345,21 @@ struct SettingsView: View {
                 .foregroundColor(iconColor)
                 .frame(width: 32, height: 32)
 
-            Text(label)
-                .font(.system(size: 19, weight: .semibold))
-                .tracking(19 * -0.025)
-                .foregroundColor(.primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.78)
-                .layoutPriority(2)
+            HStack(spacing: 6) {
+                Text(label)
+                    .font(.system(size: 19, weight: .semibold))
+                    .tracking(19 * -0.025)
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.88)
+
+                if isPro, !appState.isProMember {
+                    proLockMark
+                }
+            }
+            .layoutPriority(2)
 
             Spacer(minLength: 8)
-
-            if isPro, !appState.isProMember {
-                proLockMark
-            }
 
             trailing()
         }

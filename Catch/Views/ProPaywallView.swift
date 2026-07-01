@@ -596,7 +596,7 @@ private struct ProPlanCard: View {
                 }
 
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text("$")
+                    Text("S$")
                         .font(.system(size: 18, weight: .medium))
                         .foregroundStyle(.white.opacity(0.76))
 
@@ -671,7 +671,7 @@ private struct ProCollapsedPlanCard: View {
                         .clipShape(Capsule())
                 }
 
-                Text("$\(displayPrice)")
+                Text("S$\(displayPrice)")
                     .font(.system(size: 23, weight: .semibold))
                     .tracking(23 * -0.025)
                     .foregroundStyle(.white.opacity(0.86))
@@ -747,7 +747,7 @@ final class CatchProStore: ObservableObject {
     func priceText(for plan: CatchProPlan) -> String {
         switch plan {
         case .monthly:
-            return product(for: plan)?.displayPrice ?? currencyString(CatchProPlan.monthly.fallbackPrice)
+            return currencyString(priceDecimal(for: plan))
         case .annual:
             let annualPrice = priceDecimal(for: plan)
             return "\(currencyString(annualPrice / Decimal(12)))/mo"
@@ -759,8 +759,7 @@ final class CatchProStore: ObservableObject {
         case .monthly:
             return "Monthly subscription to Catch"
         case .annual:
-            let annualPrice = product(for: plan)?.displayPrice ?? currencyString(CatchProPlan.annual.fallbackPrice)
-            return "\(annualPrice) billed yearly"
+            return "\(currencyString(priceDecimal(for: plan))) billed yearly"
         }
     }
 
@@ -937,14 +936,12 @@ final class CatchProStore: ObservableObject {
     private func currencyString(_ value: Decimal) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
-        formatter.currencyCode = productCurrencyCode ?? "SGD"
+        formatter.locale = Locale(identifier: "en_SG")
+        formatter.currencyCode = "SGD"
+        formatter.currencySymbol = "S$"
         formatter.maximumFractionDigits = 2
         formatter.minimumFractionDigits = NSDecimalNumber(decimal: value).doubleValue.rounded() == NSDecimalNumber(decimal: value).doubleValue ? 0 : 2
-        return formatter.string(from: value as NSDecimalNumber) ?? "$\(value)"
-    }
-
-    private var productCurrencyCode: String? {
-        products.first?.priceFormatStyle.currencyCode
+        return formatter.string(from: value as NSDecimalNumber) ?? "S$\(value)"
     }
 
     private func decimalString(_ value: Decimal) -> String {
