@@ -930,7 +930,9 @@ final class CatchProStore: ObservableObject {
     }
 
     private func priceDecimal(for plan: CatchProPlan) -> Decimal {
-        product(for: plan)?.price ?? plan.fallbackPrice
+        // Keep the visible paywall aligned with the Singapore App Store listing.
+        // StoreKit can return sandbox storefront prices, but the app is sold in Singapore.
+        plan.fallbackPrice
     }
 
     private func currencyString(_ value: Decimal) -> String {
