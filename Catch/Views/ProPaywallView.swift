@@ -694,7 +694,7 @@ enum CatchProPlan: CaseIterable {
     var productID: String {
         switch self {
         case .monthly: "com.adityaarya.catch.pro.monthly"
-        case .annual: "com.adityaarya.catch.pro.yearly"
+        case .annual: "com.adityaarya.catch.pro.annual"
         }
     }
 

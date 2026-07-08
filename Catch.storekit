@@ -80,7 +80,7 @@
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.adityaarya.catch.pro.yearly",
+          "productID" : "com.adityaarya.catch.pro.annual",
           "recurringSubscriptionPeriod" : "P1Y",
           "referenceName" : "Catch Pro Annual",
           "subscriptionGroupID" : "catch-pro",

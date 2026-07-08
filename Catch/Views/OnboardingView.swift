@@ -284,7 +284,7 @@ struct OnboardingView: View {
                 .foregroundColor(.white)
                 .padding(.bottom, 24)
 
-            Text("Allow location\naccess")
+            Text("Find nearby\nbus stops")
                 .font(.system(size: 36, weight: .bold))
                 .tracking(36 * -0.025)
                 .foregroundColor(.white)
@@ -306,7 +306,7 @@ struct OnboardingView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "location.fill")
                         .font(.system(size: 14, weight: .bold))
-                    Text("Allow location")
+                    Text("Continue")
                         .font(.system(size: 16, weight: .bold))
                         .tracking(16 * -0.025)
                 }
@@ -315,10 +315,6 @@ struct OnboardingView: View {
                 .padding(.vertical, 16)
                 .background(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
-            }
-
-            skipButton(text: "Maybe later") {
-                withAnimation(.easeInOut(duration: 0.3)) { currentStep = 3 }
             }
             .padding(.bottom, 32)
         }
