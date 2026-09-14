@@ -673,29 +673,19 @@ class AppState: ObservableObject {
     // MARK: - Pro
 
     func loadProState() {
+        let cachedMembership = UserDefaults.standard.bool(forKey: DefaultsKey.isProMember)
         #if DEBUG
         if debugProUnlocked {
             isProMember = true
             CatchWidgetStore.saveProMembership(true)
             return
         }
-        isProMember = false
-        isLeaveNowAlertsEnabled = false
-        isSmartSuggestionsEnabled = false
-        UserDefaults.standard.set(false, forKey: DefaultsKey.isProMember)
-        CatchWidgetStore.saveProMembership(false)
-        if let settings = appSettings() {
-            settings.isProMember = false
-            settings.isLeaveNowAlertsEnabled = false
-            settings.isSmartSuggestionsEnabled = false
-            try? modelContext.save()
-        }
-        #else
-        isProMember = false
-        isLeaveNowAlertsEnabled = false
-        isSmartSuggestionsEnabled = false
-        CatchWidgetStore.saveProMembership(false)
         #endif
+        // Preserve a previously verified entitlement while StoreKit refreshes.
+        // CatchApp replaces this cached value with currentEntitlements as soon as
+        // the store check completes, so paid users do not see a false paywall.
+        isProMember = cachedMembership || (appSettings()?.isProMember ?? false)
+        CatchWidgetStore.saveProMembership(isProMember)
     }
 
     func setProMembership(_ storeValue: Bool) {

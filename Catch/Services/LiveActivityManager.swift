@@ -120,14 +120,7 @@ final class LiveActivityManager {
         let words = cleaned.split(separator: " ").map(String.init)
         guard !words.isEmpty else { return name }
 
-        if words.first?.lowercased() == "opp", words.count > 1 {
-            return "Opp \(words[1])"
-        }
-
-        if words.count >= 2, "\(words[0]) \(words[1])".count <= 12 {
-            return "\(words[0]) \(words[1])"
-        }
-
-        return words[0]
+        let visibleWords = words.prefix(3).joined(separator: " ")
+        return words.count > 3 ? "\(visibleWords)..." : visibleWords
     }
 }

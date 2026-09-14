@@ -154,7 +154,7 @@ struct BusStopDetailView: View {
                     .clipShape(Capsule())
         }
         .buttonStyle(LiveBoardPressStyle())
-        .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: isWatchingLiveActivity)
+        .animation(reduceMotion ? nil : .smooth(duration: 0.16), value: isWatchingLiveActivity)
         .disabled(displayServices.isEmpty || isUpdatingLiveActivity)
         .accessibilityLabel(isWatchingLiveActivity ? "Stop Live Board" : "Start Live Board for the first bus")
     }
@@ -166,7 +166,7 @@ struct BusStopDetailView: View {
             .foregroundStyle(active ? Color.red : Color(hex: "5AC8FA"))
             .frame(width: 34, height: 34)
             .background((active ? Color.red : Color(hex: "5AC8FA")).opacity(0.15), in: RoundedRectangle(cornerRadius: 13))
-            .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: active)
+            .animation(reduceMotion ? nil : .smooth(duration: 0.16), value: active)
     }
 
     private var mapSheetHeader: some View {
@@ -646,6 +646,6 @@ private struct LiveBoardPressStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
             .opacity(configuration.isPressed ? 0.8 : 1)
-            .animation(reduceMotion ? nil : .smooth(duration: 0.2), value: configuration.isPressed)
+            .animation(reduceMotion ? nil : .smooth(duration: 0.12), value: configuration.isPressed)
     }
 }

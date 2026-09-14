@@ -27,12 +27,11 @@ struct CatchStopLiveActivity: Widget {
                         .background(.white.opacity(0.10), in: Capsule())
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text(context.attributes.stopName.uppercased())
+                    Text(context.attributes.stopShortName.uppercased())
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(.white.opacity(0.62))
-                        .multilineTextAlignment(.trailing)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.65)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
@@ -83,7 +82,7 @@ struct BusArrivalCard: View {
                         .padding(.vertical, 3)
                         .background(.white.opacity(0.08), in: Capsule())
                         .accessibilityLabel("Bus \(service?.serviceNo ?? "unknown")")
-                    Text(attributes.stopName.uppercased())
+                    Text(attributes.stopShortName.uppercased())
                         .font(.system(size: 11, weight: .bold))
                         .lineLimit(1)
                         .foregroundStyle(.white.opacity(0.5))
@@ -250,7 +249,9 @@ private struct BusArrivalTrack: View {
                     .frame(height: 13)
                     .clipShape(Capsule())
 
-                    BusProgressMarker(progress: state.arrivalProgress)
+                    TimelineView(.periodic(from: start, by: 1)) { timeline in
+                        BusProgressMarker(progress: state.arrivalProgress(at: timeline.date))
+                    }
                 }
                 .frame(height: 24)
             } else {
@@ -279,6 +280,7 @@ private struct BusProgressMarker: View {
                 .background(.white, in: Circle())
                 .overlay(Circle().stroke(.black, lineWidth: 3))
                 .offset(x: markerX)
+                .animation(.linear(duration: 1), value: fraction)
         }
     }
 }
@@ -341,11 +343,15 @@ extension CatchStopActivityAttributes.ContentState {
     }
 
     var arrivalProgress: CGFloat {
+        arrivalProgress(at: updatedAt)
+    }
+
+    func arrivalProgress(at date: Date) -> CGFloat {
         guard let arrivalDate else { return 0 }
         let start = progressStartedAt ?? updatedAt
         let duration = arrivalDate.timeIntervalSince(start)
         guard duration > 0 else { return 1 }
-        return min(1, max(0, updatedAt.timeIntervalSince(start) / duration))
+        return min(1, max(0, date.timeIntervalSince(start) / duration))
     }
 }
 
