@@ -16,26 +16,24 @@ struct CatchStopLiveActivity: Widget {
                 .activitySystemActionForegroundColor(.white)
         } dynamicIsland: { context in
             DynamicIsland {
-                DynamicIslandExpandedRegion(.center) {
-                    HStack(spacing: 8) {
-                        Text(context.state.services.first?.serviceNo ?? "—")
-                            .font(.system(size: 19, weight: .bold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 3)
-                            .background(.white.opacity(0.10), in: Capsule())
-                        Text(context.attributes.stopName.uppercased())
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.white.opacity(0.58))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.58)
-                            .layoutPriority(1)
-                        Spacer(minLength: 2)
-                        Text("CATCH")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.white.opacity(0.58))
-                    }
-                    .frame(maxWidth: .infinity)
+                DynamicIslandExpandedRegion(.leading) {
+                    Text(context.state.services.first?.serviceNo ?? "—")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 3)
+                        .background(.white.opacity(0.10), in: Capsule())
+                }
+                DynamicIslandExpandedRegion(.trailing) {
+                    Text(context.attributes.stopName.uppercased())
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.62))
+                        .multilineTextAlignment(.trailing)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.65)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     BusArrivalCard(attributes: context.attributes, state: context.state,
@@ -45,10 +43,11 @@ struct CatchStopLiveActivity: Widget {
                 Text(context.state.services.first?.serviceNo ?? "—")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(context.state.arrivalColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
             } compactTrailing: {
                 ArrivalCountdown(state: context.state, isStale: context.isStale)
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .frame(width: 68)
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
             } minimal: {
                 Image(systemName: "bus.fill")
                     .foregroundStyle(context.state.arrivalColor)
@@ -96,16 +95,16 @@ struct BusArrivalCard: View {
 
                 }
 
-                HStack(alignment: .center, spacing: 8) {
+                HStack(alignment: .center, spacing: showsHeader ? 8 : 5) {
                     CurrentClock()
                         .frame(maxWidth: .infinity, alignment: .leading)
                     ArrivalCountdown(state: state, isStale: isStale)
                         .font(.system(size: 17, weight: .bold, design: .rounded))
-                        .frame(width: 88)
+                        .frame(width: showsHeader ? 88 : 72)
                     ArrivalClock(state: state, isStale: isStale)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
-                .font(.system(size: 22, weight: .bold))
+                .font(.system(size: showsHeader ? 22 : 17, weight: .bold))
                 .foregroundStyle(color)
                 .monospacedDigit()
                 .lineLimit(1)
@@ -125,12 +124,12 @@ struct BusArrivalCard: View {
                     Text(isStale ? "Update needed" : state.arrivalDate == nil ? "No prediction" : "Estimated arrival")
                         .foregroundStyle(.white.opacity(0.75))
                 }
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: showsHeader ? 10 : 9, weight: .bold))
                 .lineLimit(1)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 10)
-            .padding(.bottom, 6)
+            .padding(.horizontal, showsHeader ? 16 : 12)
+            .padding(.top, showsHeader ? 10 : 4)
+            .padding(.bottom, showsHeader ? 6 : 4)
 
             if showsFooter {
                 HStack(spacing: 8) {

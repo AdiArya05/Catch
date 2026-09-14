@@ -890,8 +890,8 @@ extension Notification.Name {
     static let catchHomeSelected = Notification.Name("catch-home-tab-selected")
 }
 
-// UIKit owns the entire drag lifecycle so a SwiftUI scroll/tap recognizer cannot
-// cancel a reorder halfway through. The datasource changes only on a committed drop.
+// UIKit owns the entire long-press movement so horizontal scrolling cannot cancel
+// a reorder halfway through. The datasource changes only on a committed move.
 private struct SavedStopStrip: UIViewRepresentable {
     let locations: [SavedLocation]
     let isDark: Bool
@@ -908,12 +908,17 @@ private struct SavedStopStrip: UIViewRepresentable {
         view.backgroundColor = .clear
         view.showsHorizontalScrollIndicator = false
         view.alwaysBounceHorizontal = true
+        view.reorderingCadence = .fast
         view.register(UICollectionViewCell.self, forCellWithReuseIdentifier: "stop")
         view.dataSource = context.coordinator
         view.delegate = context.coordinator
-        view.dragDelegate = context.coordinator
-        view.dropDelegate = context.coordinator
-        view.dragInteractionEnabled = true
+        let reorderGesture = UILongPressGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handleReorderGesture(_:))
+        )
+        reorderGesture.minimumPressDuration = 0.18
+        reorderGesture.allowableMovement = 40
+        view.addGestureRecognizer(reorderGesture)
         return view
     }
     func updateUIView(_ view: UICollectionView, context: Context) {
@@ -926,7 +931,7 @@ private struct SavedStopStrip: UIViewRepresentable {
         coordinator.items = locations
         view.reloadData()
     }
-    final class Coordinator: NSObject, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UICollectionViewDragDelegate, UICollectionViewDropDelegate {
+    final class Coordinator: NSObject, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
         var parent: SavedStopStrip
         var items: [SavedLocation]
         var moving = false
@@ -977,53 +982,33 @@ private struct SavedStopStrip: UIViewRepresentable {
             commitMove(from: sourceIndexPath.item, to: destinationIndexPath.item)
         }
 
-        func collectionView(_ collectionView: UICollectionView, itemsForBeginning session: UIDragSession, at indexPath: IndexPath) -> [UIDragItem] {
-            guard items.count > 1 else { return [] }
-            moving = true
-            Haptics.tap(.medium)
-            let id = items[indexPath.item].id
-            let dragItem = UIDragItem(itemProvider: NSItemProvider(object: id as NSString))
-            dragItem.localObject = id
-            return [dragItem]
-        }
+        @objc func handleReorderGesture(_ gesture: UILongPressGestureRecognizer) {
+            guard let collectionView = gesture.view as? UICollectionView else { return }
+            let position = gesture.location(in: collectionView)
 
-        func collectionView(_ collectionView: UICollectionView, dragSessionDidEnd session: UIDragSession) {
-            moving = false
-        }
-
-        func collectionView(
-            _ collectionView: UICollectionView,
-            dropSessionDidUpdate session: UIDropSession,
-            withDestinationIndexPath destinationIndexPath: IndexPath?
-        ) -> UICollectionViewDropProposal {
-            guard collectionView.hasActiveDrag else {
-                return UICollectionViewDropProposal(operation: .forbidden)
-            }
-            return UICollectionViewDropProposal(operation: .move, intent: .insertAtDestinationIndexPath)
-        }
-
-        func collectionView(_ collectionView: UICollectionView, performDropWith coordinator: UICollectionViewDropCoordinator) {
-            guard let dropped = coordinator.items.first,
-                  let source = dropped.sourceIndexPath else {
+            switch gesture.state {
+            case .began:
+                guard items.count > 1,
+                      let indexPath = collectionView.indexPathForItem(at: position),
+                      collectionView.beginInteractiveMovementForItem(at: indexPath) else { return }
+                moving = true
+                collectionView.isScrollEnabled = false
+                Haptics.tap(.medium)
+            case .changed:
+                guard moving else { return }
+                collectionView.updateInteractiveMovementTargetPosition(position)
+            case .ended:
+                guard moving else { return }
+                collectionView.endInteractiveMovement()
+                collectionView.isScrollEnabled = true
                 moving = false
-                return
-            }
-
-            let proposed = coordinator.destinationIndexPath?.item ?? max(items.count - 1, 0)
-            let destination = min(max(proposed, 0), max(items.count - 1, 0))
-            guard source.item != destination else {
-                coordinator.drop(dropped.dragItem, toItemAt: source)
+                Haptics.tap()
+            default:
+                guard moving else { return }
+                collectionView.cancelInteractiveMovement()
+                collectionView.isScrollEnabled = true
                 moving = false
-                return
             }
-
-            collectionView.performBatchUpdates {
-                let item = items.remove(at: source.item)
-                items.insert(item, at: destination)
-                collectionView.moveItem(at: source, to: IndexPath(item: destination, section: 0))
-            }
-            coordinator.drop(dropped.dragItem, toItemAt: IndexPath(item: destination, section: 0))
-            finishMove(from: source.item, to: destination)
         }
 
         private func commitMove(from: Int, to: Int) {
@@ -1038,8 +1023,6 @@ private struct SavedStopStrip: UIViewRepresentable {
             // native lift-and-settle animation without a reload flash.
             signature = items.map { "\($0.id)|\($0.name)|\($0.icon)|\($0.colorHex)" }.joined(separator: ";") + String(parent.isDark)
             parent.onMove(from, to)
-            moving = false
-            Haptics.tap()
         }
     }
 }

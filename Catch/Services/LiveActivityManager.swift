@@ -26,7 +26,7 @@ final class LiveActivityManager {
         let state = CatchStopActivityAttributes.ContentState(
             services: timings,
             updatedAt: now,
-            progressStartedAt: Self.progressStart(arrival: timings.first?.arrivalDate, now: now)
+            progressStartedAt: now
         )
 
         await endAll()
@@ -60,7 +60,7 @@ final class LiveActivityManager {
             old <= Date() && (nextArrival?.timeIntervalSince(old) ?? 0) > 60
         } ?? false
         let now = Date()
-        let baseline = Self.progressStart(arrival: nextArrival, now: now)
+        let baseline = now
         let state = CatchStopActivityAttributes.ContentState(
             services: timings,
             updatedAt: now,
@@ -73,12 +73,6 @@ final class LiveActivityManager {
         for activity in Activity<CatchStopActivityAttributes>.activities {
             await activity.end(nil, dismissalPolicy: .immediate)
         }
-    }
-
-    // An arrival within fifteen minutes starts partway through the approach,
-    // instead of measuring how long the person has had Live Board open.
-    private static func progressStart(arrival: Date?, now: Date) -> Date {
-        min(now, (arrival ?? now).addingTimeInterval(-15 * 60))
     }
 
     private static func staleDate(for state: CatchStopActivityAttributes.ContentState) -> Date {
