@@ -18,20 +18,28 @@ struct CatchStopLiveActivity: Widget {
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     Text(context.state.services.first?.serviceNo ?? "—")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 17, weight: .black, design: .rounded))
                         .foregroundStyle(.white)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 3)
-                        .background(.white.opacity(0.10), in: Capsule())
+                        .minimumScaleFactor(0.8)
+                        .padding(.horizontal, 10)
+                        .frame(height: 28)
+                        .background(.white.opacity(0.12), in: Capsule())
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                DynamicIslandExpandedRegion(.center) {
+                    Text(context.attributes.stopShortName.uppercased())
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.68))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .frame(maxWidth: .infinity, alignment: .center)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text(context.attributes.stopShortName.uppercased())
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.62))
+                    Text("CATCH")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.55))
                         .lineLimit(1)
-                        .minimumScaleFactor(0.72)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
@@ -40,13 +48,17 @@ struct CatchStopLiveActivity: Widget {
                 }
             } compactLeading: {
                 Text(context.state.services.first?.serviceNo ?? "—")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 14, weight: .black, design: .rounded))
                     .foregroundStyle(context.state.arrivalColor)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.72)
+                    .minimumScaleFactor(0.8)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(context.state.arrivalColor.opacity(0.16), in: Capsule())
             } compactTrailing: {
                 ArrivalCountdown(state: context.state, isStale: context.isStale)
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .monospacedDigit()
             } minimal: {
                 Image(systemName: "bus.fill")
                     .foregroundStyle(context.state.arrivalColor)
