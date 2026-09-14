@@ -1,8 +1,8 @@
 # Catch Terms of Service
 
-Effective date: June 6, 2026
+Effective date: September 14, 2026
 
-These Terms of Service govern your use of Catch. Catch is a Singapore bus timing app that helps users view bus arrivals, saved places, widgets, Live Board, Live Activities, and leave-now decisions.
+These Terms of Service govern your use of Catch. Catch is a Singapore bus timing app that helps users view bus arrivals, saved places, widgets, Live Board, Live Activities, leave-now decisions, and submit product feedback.
 
 ## 1. App Owner
 
@@ -28,6 +28,7 @@ Catch helps you make routine bus decisions by showing:
 - leave-now alerts;
 - widgets, Live Activities, and Dynamic Island displays;
 - saved-place and pinned-stop preferences;
+- the Feedback Board;
 - Catch Pro features.
 
 Catch is a planning aid. It is not an official transport service and does not guarantee that any bus will arrive, depart, stop, or be available at a specific time.
@@ -72,36 +73,43 @@ You agree not to:
 - attempt to reverse engineer, copy, or modify the app except as allowed by law;
 - use Catch to violate laws or transport safety rules;
 - use automated methods to overload third-party transport data services;
+- submit unlawful, abusive, threatening, misleading, confidential, or privacy-invasive content through the Feedback Board;
 - misrepresent Catch as an official government or transport authority app.
 
-## 9. Intellectual Property
+## 9. Feedback Board
+
+When you submit feedback, you give Catch permission to store, display, moderate, respond to, and use that feedback to support and improve the app. You keep ownership of your original feedback. Do not include personal, confidential, or sensitive information that you do not want processed as described in the Privacy Policy.
+
+Catch may remove feedback, change its status, or restrict submissions when needed to keep the board useful, safe, and reliable. Submission does not guarantee a response or that a requested change will be implemented.
+
+## 10. Intellectual Property
 
 Catch, including its name, design, interface, icons, code, and original content, is owned by the app owner or licensed to the app owner. These Terms do not transfer ownership of Catch to you.
 
 Third-party names, data, services, and platform features remain the property of their respective owners.
 
-## 10. Privacy
+## 11. Privacy
 
 Your use of Catch is also governed by the Catch Privacy Policy. The Privacy Policy explains what data Catch handles, how it is used, retention/deletion controls, and permission choices.
 
-## 11. No Warranty
+## 12. No Warranty
 
 Catch is provided "as is" and "as available." To the maximum extent permitted by law, Catch makes no warranties that the app will be uninterrupted, accurate, error-free, or available at all times.
 
-## 12. Limitation Of Liability
+## 13. Limitation Of Liability
 
 To the maximum extent permitted by law, Catch and its developer are not liable for indirect, incidental, special, consequential, or punitive damages, or for losses related to missed transport, delays, inaccurate arrival data, device settings, notification delivery, network outages, or third-party services.
 
 Some jurisdictions do not allow certain limitations of liability, so some limitations may not apply to you.
 
-## 13. Changes To Catch
+## 14. Changes To Catch
 
 Catch may add, remove, or change features over time. Some features may require Pro, location permission, notification permission, network access, compatible devices, or supported iOS versions.
 
-## 14. Changes To These Terms
+## 15. Changes To These Terms
 
 Catch may update these Terms when features, legal requirements, or business terms change. The effective date will be updated when material changes are made. Continued use of Catch after changes means you accept the updated Terms.
 
-## 15. Contact
+## 16. Contact
 
 For questions about these Terms, contact: adityaarya1021@gmail.com.

@@ -18,25 +18,30 @@ struct BusService: Codable, Identifiable {
 }
 
 struct BusInfo: Codable {
+    let OriginCode: String?
+    let DestinationCode: String?
     let EstimatedArrival: String?
     let Load: String?
     let Feature: String?
     let BusType: String?
 
     enum CodingKeys: String, CodingKey {
-        case EstimatedArrival, Load, Feature
+        case OriginCode, DestinationCode, EstimatedArrival, Load, Feature
         case BusType = "Type"
     }
 
-    var arrivalMinutes: Int? {
+    var arrivalDate: Date? {
         guard let arrival = EstimatedArrival, !arrival.isEmpty else { return nil }
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let formatterNoFrac = ISO8601DateFormatter()
         formatterNoFrac.formatOptions = [.withInternetDateTime]
-        guard let date = formatter.date(from: arrival) ?? formatterNoFrac.date(from: arrival) else { return nil }
-        let diff = date.timeIntervalSinceNow / 60
-        return max(0, Int(diff))
+        return formatter.date(from: arrival) ?? formatterNoFrac.date(from: arrival)
+    }
+
+    var arrivalMinutes: Int? {
+        guard let date = arrivalDate else { return nil }
+        return max(0, Int(date.timeIntervalSinceNow / 60))
     }
 
     var arrivalText: String {
@@ -96,6 +101,27 @@ struct BusStop: Codable, Identifiable {
 
 struct BusStopResponse: Codable {
     let value: [BusStop]
+}
+
+// MARK: - Bus Route Summary
+
+struct BusRouteSummaryResponse: Codable {
+    let value: [BusRouteSummary]
+}
+
+struct BusRouteSummary: Codable, Identifiable {
+    var id: String { "\(ServiceNo)-\(Direction)" }
+    let ServiceNo: String
+    let Operator: String
+    let Direction: Int
+    let Category: String
+    let OriginCode: String
+    let DestinationCode: String
+    let AM_Peak_Freq: String
+    let AM_Offpeak_Freq: String
+    let PM_Peak_Freq: String
+    let PM_Offpeak_Freq: String
+    let LoopDesc: String
 }
 
 // MARK: - Nearby Stop (with distance)
@@ -171,6 +197,7 @@ struct CommuteLogEntry: Codable {
     let dayOfWeek: Int
     let hour: Int
     let busServices: [String]
+    var source: String? = nil
 }
 
 // MARK: - Catchability

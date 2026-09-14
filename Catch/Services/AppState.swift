@@ -39,6 +39,16 @@ class AppState: ObservableObject {
     @Published var catchabilityBusStopCode: String = ""
     @Published var catchabilityBusStopDescription: String = ""
     @Published var isLoadingCatchability = false
+    @Published private(set) var trackedBusHistory: [TrackedBusRecord] = {
+        guard let data = UserDefaults.standard.data(forKey: "catch-tracked-bus-history"),
+              let records = try? JSONDecoder().decode([TrackedBusRecord].self, from: data) else { return [] }
+        return records
+    }()
+
+    @Published var useFirstBusWhenUnpinned = UserDefaults.standard.object(forKey: "catch-live-board-first-bus") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(useFirstBusWhenUnpinned, forKey: "catch-live-board-first-bus") }
+    }
+
     @Published var commuteInsight: String = ""
     @Published var showInsightCard = false
     @Published var isCatchItEnabled: Bool = true
@@ -46,9 +56,20 @@ class AppState: ObservableObject {
     @Published var isSmartSuggestionsEnabled: Bool = false
     @Published var areNotificationsEnabled: Bool = false
     @Published var isProMember: Bool = false
+    private var storeHasProEntitlement = false
+    #if DEBUG
+    @Published var debugProUnlocked = (UserDefaults.standard.object(forKey: "catch-debug-pro-unlocked") as? Bool ?? true)
+
+    func setDebugProUnlocked(_ enabled: Bool) {
+        debugProUnlocked = enabled
+        UserDefaults.standard.set(enabled, forKey: "catch-debug-pro-unlocked")
+        setProMembership(storeHasProEntitlement)
+        refreshCatchability()
+    }
+    #endif
     @Published var showProPaywall: Bool = false
     @Published var proPaywallContext: String = "Catch Pro"
-    @Published private var pinnedBusServicesByStop: [String: Set<String>] = [:]
+    @Published private var pinnedBusServicesByStop: [String: [String]] = [:]
 
     let locationManager = LocationManager()
     let freeSavedPlaceLimit = 3
@@ -57,6 +78,7 @@ class AppState: ObservableObject {
     private let modelContext: ModelContext
     private var hasLoadedStops = false
     private var lastCatchabilityRefreshLocation: CLLocation?
+    private var catchabilityRequestID = UUID()
     private var pendingLiveBoardTrip: PendingLiveBoardTrip?
     private var cancellables = Set<AnyCancellable>()
 
@@ -72,6 +94,11 @@ class AppState: ObservableObject {
         loadDarkMode()
         loadFeatureToggles()
         loadProState()
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-catch-pro-testing") {
+            setDebugProUnlocked(true)
+        }
+        #endif
         loadPinnedBusServices()
         loadPendingLiveBoardTrip()
         registerFirstUseDate()
@@ -109,7 +136,7 @@ class AppState: ObservableObject {
     }
 
     func loadBusStops() async {
-        guard !hasLoadedStops else { return }
+        guard !hasLoadedStops, !isLoadingStops else { return }
         isLoadingStops = true
         do {
             allBusStops = try await LTAService.shared.fetchAllBusStops()
@@ -182,6 +209,7 @@ class AppState: ObservableObject {
     }
 
     func saveSavedLocations() {
+        defer { if isCatchItEnabled { refreshCatchability() } }
         let stored = fetchStoredLocations()
         stored.forEach { modelContext.delete($0) }
         for (index, location) in savedLocations.enumerated() {
@@ -233,6 +261,20 @@ class AppState: ObservableObject {
         Task { await refreshWidgetSnapshot() }
     }
 
+    func moveSavedLocations(fromOffsets: IndexSet, toOffset: Int) {
+        previewSavedLocationMove(fromOffsets: fromOffsets, toOffset: toOffset)
+        persistSavedLocationOrder()
+    }
+
+    func previewSavedLocationMove(fromOffsets: IndexSet, toOffset: Int) {
+        savedLocations.move(fromOffsets: fromOffsets, toOffset: toOffset)
+    }
+
+    func persistSavedLocationOrder() {
+        saveSavedLocations()
+        Task { await refreshWidgetSnapshot() }
+    }
+
     func savedLocation(forBusStopCode code: String) -> SavedLocation? {
         savedLocations.first { $0.busStopCode == code }
     }
@@ -240,7 +282,18 @@ class AppState: ObservableObject {
     // MARK: - Pinned Buses
 
     func pinnedBusServices(for stopCode: String) -> Set<String> {
-        pinnedBusServicesByStop[stopCode] ?? []
+        Set(pinnedBusServicesByStop[stopCode] ?? [])
+    }
+
+    var catchabilitySavedLocations: [SavedLocation] {
+        var seen = Set<String>()
+        return savedLocations.filter {
+            !$0.busStopCode.isEmpty && seen.insert($0.busStopCode).inserted
+        }
+    }
+
+    func firstPinnedBusService(for stopCode: String) -> String? {
+        pinnedBusServicesByStop[stopCode]?.first
     }
 
     func isBusServicePinned(stopCode: String, serviceNo: String) -> Bool {
@@ -250,9 +303,9 @@ class AppState: ObservableObject {
     func togglePinnedBusService(stopCode: String, serviceNo: String) {
         var pinned = pinnedBusServicesByStop[stopCode] ?? []
         if pinned.contains(serviceNo) {
-            pinned.remove(serviceNo)
+            pinned.removeAll { $0 == serviceNo }
         } else {
-            pinned.insert(serviceNo)
+            pinned.append(serviceNo)
         }
 
         if pinned.isEmpty {
@@ -266,12 +319,23 @@ class AppState: ObservableObject {
             await refreshWidgetSnapshot(preferredStopCode: stopCode)
             await refreshActiveLiveBoardIfNeeded(for: stopCode)
         }
+        if isCatchItEnabled {
+            refreshCatchability()
+        }
     }
 
     func liveBoardServices(for stopCode: String, services: [BusService]) -> [BusService] {
-        let pinned = pinnedBusServices(for: stopCode)
-        let source = pinned.isEmpty ? services : services.filter { pinned.contains($0.ServiceNo) }
-        return sortedBusServices(source)
+        let active = LiveActivityManager.shared.activeActivity
+        let selectedService = active?.attributes.stopCode == stopCode ? active?.content.state.services.first?.serviceNo : nil
+        guard let first = selectedService ?? firstPinnedBusService(for: stopCode) else {
+            return useFirstBusWhenUnpinned ? Array(sortedBusServices(services).prefix(1)) : []
+        }
+        if let service = services.first(where: { $0.ServiceNo == first }) { return [service] }
+        // Never switch to another bus when the first pin has no live prediction.
+        let unavailable = BusInfo(OriginCode: nil, DestinationCode: nil, EstimatedArrival: nil,
+                                  Load: nil, Feature: nil, BusType: nil)
+        return [BusService(ServiceNo: first, NextBus: unavailable,
+                           NextBus2: unavailable, NextBus3: unavailable)]
     }
 
     func refreshActiveLiveBoardIfNeeded(for stopCode: String? = nil) async {
@@ -281,6 +345,7 @@ class AppState: ObservableObject {
 
         do {
             let response = try await LTAService.shared.fetchBusArrivals(busStopCode: activeStopCode)
+            guard LiveActivityManager.shared.activeActivity?.id == activity.id else { return }
             let sorted = sortedBusServices(response.Services)
             await LiveActivityManager.shared.updateStopWatch(
                 services: liveBoardServices(for: activeStopCode, services: sorted)
@@ -309,30 +374,39 @@ class AppState: ObservableObject {
         let stored = (try? modelContext.fetch(descriptor)) ?? []
         if !stored.isEmpty {
             pinnedBusServicesByStop = Dictionary(grouping: stored, by: \.stopCode)
-                .mapValues { Set($0.map(\.serviceNo)) }
+                .mapValues { rows in
+                    var seen = Set<String>()
+                    return rows.map(\.serviceNo).filter { seen.insert($0).inserted }
+                }
             return
         }
 
         guard let data = UserDefaults.standard.data(forKey: DefaultsKey.pinnedBusServices),
               let decoded = try? JSONDecoder().decode([String: [String]].self, from: data) else { return }
-        pinnedBusServicesByStop = decoded.mapValues { Set($0) }
+        pinnedBusServicesByStop = decoded.mapValues { values in
+            var seen = Set<String>()
+            return values.filter { seen.insert($0).inserted }
+        }
         savePinnedBusServices()
     }
 
     private func savePinnedBusServices() {
         let descriptor = FetchDescriptor<StoredPinnedBusService>()
         let stored = (try? modelContext.fetch(descriptor)) ?? []
-        stored.forEach { modelContext.delete($0) }
-
+        for row in stored where !pinnedBusServices(for: row.stopCode).contains(row.serviceNo) {
+            modelContext.delete(row)
+        }
         for (stopCode, services) in pinnedBusServicesByStop {
-            for serviceNo in services.sorted(by: serviceNumberSort) {
-                modelContext.insert(StoredPinnedBusService(stopCode: stopCode, serviceNo: serviceNo))
+            for (index, serviceNo) in services.enumerated() {
+                if !stored.contains(where: { $0.stopCode == stopCode && $0.serviceNo == serviceNo }) {
+                    let row = StoredPinnedBusService(stopCode: stopCode, serviceNo: serviceNo)
+                    row.pinnedAt = Date().addingTimeInterval(Double(index) * 0.001)
+                    modelContext.insert(row)
+                }
             }
         }
         try? modelContext.save()
-
-        let encodable = pinnedBusServicesByStop.mapValues { Array($0).sorted(by: serviceNumberSort) }
-        if let data = try? JSONEncoder().encode(encodable) {
+        if let data = try? JSONEncoder().encode(pinnedBusServicesByStop) {
             UserDefaults.standard.set(data, forKey: DefaultsKey.pinnedBusServices)
         }
     }
@@ -600,6 +674,11 @@ class AppState: ObservableObject {
 
     func loadProState() {
         #if DEBUG
+        if debugProUnlocked {
+            isProMember = true
+            CatchWidgetStore.saveProMembership(true)
+            return
+        }
         isProMember = false
         isLeaveNowAlertsEnabled = false
         isSmartSuggestionsEnabled = false
@@ -619,7 +698,13 @@ class AppState: ObservableObject {
         #endif
     }
 
-    func setProMembership(_ value: Bool) {
+    func setProMembership(_ storeValue: Bool) {
+        storeHasProEntitlement = storeValue
+        #if DEBUG
+        let value = storeValue || debugProUnlocked
+        #else
+        let value = storeValue
+        #endif
         isProMember = value
         if value {
             isLeaveNowAlertsEnabled = true
@@ -688,26 +773,31 @@ class AppState: ObservableObject {
     // MARK: - Can I Catch It?
 
     func refreshCatchability() {
-        guard let location = locationManager.location else { return }
-        let validLocations = savedLocations.filter { !$0.busStopCode.isEmpty }
-        guard !validLocations.isEmpty else { return }
-        lastCatchabilityRefreshLocation = location
-
-        var closestLoc = validLocations[0]
-        var closestDistance = Double.infinity
-
-        for loc in validLocations {
-            if let busStop = allBusStops.first(where: { $0.BusStopCode == loc.busStopCode }) {
-                let stopLocation = CLLocation(latitude: busStop.Latitude, longitude: busStop.Longitude)
-                let dist = location.distance(from: stopLocation)
-                if dist < closestDistance {
-                    closestDistance = dist
-                    closestLoc = loc
-                }
-            }
+        let location = locationManager.location
+        let requestID = UUID()
+        catchabilityRequestID = requestID
+        let candidates = catchabilitySavedLocations
+        guard !candidates.isEmpty else {
+            catchabilityResults = []
+            catchabilityBusStopCode = ""
+            catchabilityBusStopDescription = ""
+            catchabilityLocationName = ""
+            catchabilityMessage = "Save a stop to check your commute."
+            isLoadingCatchability = false
+            return
         }
+        lastCatchabilityRefreshLocation = location
+        let closestLoc = closestSavedLocation(from: candidates)
+            ?? candidates[0]
 
+        // Preserve the displayed card during a refresh of the same stop. Clearing
+        // it first collapses the Home layout and moves everything below it twice.
+        let isChangingStop = catchabilityBusStopCode != closestLoc.busStopCode
         isLoadingCatchability = true
+        if isChangingStop {
+            catchabilityResults = []
+            catchabilityMessage = ""
+        }
         catchabilityLocationName = closestLoc.name
         catchabilityBusStopCode = closestLoc.busStopCode
         catchabilityBusStopDescription = closestLoc.busStopDescription
@@ -715,9 +805,14 @@ class AppState: ObservableObject {
         Task {
             do {
                 let response = try await LTAService.shared.fetchBusArrivals(busStopCode: closestLoc.busStopCode)
+                guard catchabilityRequestID == requestID else { return }
                 let walkMin = closestLoc.walkMinutes
+                let pinnedServices = pinnedBusServices(for: closestLoc.busStopCode)
+                let visibleServices = pinnedServices.isEmpty
+                    ? response.Services
+                    : response.Services.filter { pinnedServices.contains($0.ServiceNo) }
 
-                let results: [CatchabilityResult] = response.Services.compactMap { svc in
+                let results: [CatchabilityResult] = visibleServices.compactMap { svc in
                     guard let arrival = svc.NextBus.arrivalMinutes else { return nil }
                     let leaveIn = arrival - walkMin
                     let level: CatchabilityLevel
@@ -748,6 +843,10 @@ class AppState: ObservableObject {
                         results: topResults,
                         stopName: closestLoc.busStopDescription
                     )
+                } else {
+                    catchabilityMessage = pinnedServices.isEmpty
+                        ? "No live arrivals at this stop right now."
+                        : "No live arrivals for your pinned buses right now."
                 }
 
                 checkLeaveNowAlert(results: results, stopName: closestLoc.busStopDescription)
@@ -755,15 +854,22 @@ class AppState: ObservableObject {
                 #if DEBUG
                 print("Catchability error: \(error)")
                 #endif
+                guard catchabilityRequestID == requestID else { return }
+                catchabilityResults = []
+                catchabilityMessage = "Couldn’t load arrivals. Tap your stop to try again."
             }
+            guard catchabilityRequestID == requestID else { return }
             isLoadingCatchability = false
         }
     }
 
     private func refreshCatchabilityIfNeeded(for location: CLLocation?) {
         guard let location, hasLoadedStops, isProMember, isCatchItEnabled, !isLoadingCatchability else { return }
+        let closestStopCode = closestSavedLocation(from: catchabilitySavedLocations)?.busStopCode
+        let closestStopChanged = closestStopCode != nil && closestStopCode != catchabilityBusStopCode
         if let lastCatchabilityRefreshLocation,
            location.distance(from: lastCatchabilityRefreshLocation) < 80,
+           !closestStopChanged,
            !catchabilityResults.isEmpty {
             return
         }
@@ -810,6 +916,7 @@ class AppState: ObservableObject {
 
         if pendingLiveBoardTrip?.stopCode == stopCode,
            pendingLiveBoardTrip?.serviceNo == trackedService.ServiceNo {
+            if let trip = pendingLiveBoardTrip { saveTrackedBus(trip) }
             updateLiveBoardTrip(stopCode: stopCode, stopName: stopName, services: services)
             return
         }
@@ -827,8 +934,20 @@ class AppState: ObservableObject {
         )
 
         pendingLiveBoardTrip = trip
+        saveTrackedBus(trip)
         persistPendingLiveBoardTrip()
         completeLiveBoardTripIfReady()
+    }
+
+    private func saveTrackedBus(_ trip: PendingLiveBoardTrip) {
+        guard !trackedBusHistory.contains(where: {
+            $0.stopCode == trip.stopCode && $0.serviceNo == trip.serviceNo && $0.startedAt == trip.startedAt
+        }) else { return }
+        trackedBusHistory.insert(TrackedBusRecord(id: UUID(), stopCode: trip.stopCode, stopName: trip.stopName,
+                                                  serviceNo: trip.serviceNo, startedAt: trip.startedAt), at: 0)
+        if let data = try? JSONEncoder().encode(trackedBusHistory) {
+            UserDefaults.standard.set(data, forKey: "catch-tracked-bus-history")
+        }
     }
 
     func updateLiveBoardTrip(stopCode: String, stopName: String, services: [BusService]) {
@@ -837,6 +956,10 @@ class AppState: ObservableObject {
         let liveServices = liveBoardServices(for: stopCode, services: services)
         let selectedService = liveServices.first { $0.ServiceNo == trip.serviceNo } ?? liveServices.first
         guard let selectedService else { return }
+        if selectedService.ServiceNo != trip.serviceNo {
+            beginLiveBoardTrip(stopCode: stopCode, stopName: stopName, services: services)
+            return
+        }
 
         trip.stopName = stopName
         trip.serviceNo = selectedService.ServiceNo
@@ -861,9 +984,17 @@ class AppState: ObservableObject {
     }
 
     private func completeLiveBoardTripIfReady() {
-        guard let trip = pendingLiveBoardTrip,
-              let sawArrivalAt = trip.sawArrivalAt else { return }
-
+        guard var trip = pendingLiveBoardTrip else { return }
+        if let location = locationManager.location,
+           location.horizontalAccuracy >= 0, location.horizontalAccuracy <= 65,
+           abs(location.timestamp.timeIntervalSinceNow) < 60,
+           let latitude = trip.stopLatitude, let longitude = trip.stopLongitude,
+           location.distance(from: CLLocation(latitude: latitude, longitude: longitude)) <= 100 {
+            trip.wasNearStop = true
+            pendingLiveBoardTrip = trip
+            persistPendingLiveBoardTrip()
+        }
+        guard trip.wasNearStop == true, let sawArrivalAt = trip.sawArrivalAt else { return }
         let now = Date()
         guard now.timeIntervalSince(sawArrivalAt) <= 10 * 60 else {
             cancelLiveBoardTripTracking()
@@ -877,6 +1008,8 @@ class AppState: ObservableObject {
 
     private func isUserAwayFromTrackedStop(_ trip: PendingLiveBoardTrip) -> Bool {
         guard let location = locationManager.location,
+              location.horizontalAccuracy >= 0, location.horizontalAccuracy <= 65,
+              abs(location.timestamp.timeIntervalSinceNow) < 60,
               let latitude = trip.stopLatitude,
               let longitude = trip.stopLongitude else { return false }
 
@@ -894,7 +1027,7 @@ class AppState: ObservableObject {
         }
         guard !duplicate else { return }
 
-        logCommuteEntry(stopCode: trip.stopCode, stopName: trip.stopName, services: [trip.serviceNo])
+        logCommuteEntry(stopCode: trip.stopCode, stopName: trip.stopName, services: [trip.serviceNo], source: "detected")
     }
 
     private func loadPendingLiveBoardTrip() {
@@ -903,6 +1036,7 @@ class AppState: ObservableObject {
 
         if Date().timeIntervalSince(trip.startedAt) < 2 * 60 * 60 {
             pendingLiveBoardTrip = trip
+            saveTrackedBus(trip)
         } else {
             UserDefaults.standard.removeObject(forKey: DefaultsKey.pendingLiveBoardTrip)
         }
@@ -914,7 +1048,7 @@ class AppState: ObservableObject {
         UserDefaults.standard.set(data, forKey: DefaultsKey.pendingLiveBoardTrip)
     }
 
-    private func logCommuteEntry(stopCode: String, stopName: String, services: [String]) {
+    private func logCommuteEntry(stopCode: String, stopName: String, services: [String], source: String? = nil) {
         let now = Date()
         let calendar = Calendar.current
         let entry = CommuteLogEntry(
@@ -923,14 +1057,14 @@ class AppState: ObservableObject {
             timestamp: now,
             dayOfWeek: calendar.component(.weekday, from: now),
             hour: calendar.component(.hour, from: now),
-            busServices: services
+            busServices: services,
+            source: source
         )
 
         var logs = loadCommuteLogs()
         logs.append(entry)
-        let twoWeeksAgo = calendar.date(byAdding: .day, value: -14, to: now)!
-        logs = logs.filter { $0.timestamp > twoWeeksAgo }
         saveCommuteLogs(logs)
+        objectWillChange.send()
 
         if shouldAnalyzePatterns() {
             analyzePatterns(logs: logs)
@@ -1123,6 +1257,7 @@ private struct PendingLiveBoardTrip: Codable {
     var stopLongitude: Double?
     let initialArrivalMinutes: Int?
     var sawArrivalAt: Date?
+    var wasNearStop: Bool?
 }
 
 @Model
@@ -1183,6 +1318,7 @@ final class StoredCommuteLogEntry {
     var dayOfWeek: Int = 1
     var hour: Int = 0
     var busServicesValue: String = ""
+    var detectionSource: String = ""
 
     init(entry: CommuteLogEntry) {
         self.stopCode = entry.stopCode
@@ -1191,6 +1327,7 @@ final class StoredCommuteLogEntry {
         self.dayOfWeek = entry.dayOfWeek
         self.hour = entry.hour
         self.busServicesValue = entry.busServices.joined(separator: ",")
+        self.detectionSource = entry.source ?? ""
     }
 
     var commuteLogEntry: CommuteLogEntry {
@@ -1200,7 +1337,8 @@ final class StoredCommuteLogEntry {
             timestamp: timestamp,
             dayOfWeek: dayOfWeek,
             hour: hour,
-            busServices: busServicesValue.split(separator: ",").map(String.init)
+            busServices: busServicesValue.split(separator: ",").map(String.init),
+            source: detectionSource.isEmpty ? nil : detectionSource
         )
     }
 }
@@ -1226,4 +1364,12 @@ private extension Array {
     subscript(safe index: Index) -> Element? {
         indices.contains(index) ? self[index] : nil
     }
+}
+
+struct TrackedBusRecord: Codable, Identifiable {
+    let id: UUID
+    let stopCode: String
+    let stopName: String
+    let serviceNo: String
+    let startedAt: Date
 }

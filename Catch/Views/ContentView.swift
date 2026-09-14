@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 private struct LocationEditorSheet: Identifiable {
     let id: String
@@ -45,7 +46,6 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var locationEditorSheet: LocationEditorSheet?
     @State private var showProfile = false
-    @State private var bottomBarCollapseProgress: CGFloat = 0
 
     var body: some View {
         ZStack {
@@ -105,6 +105,12 @@ struct ContentView: View {
         .onReceive(appState.$allBusStops) { _ in
             appState.updateNearbyStops()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .catchHomeSelected)) { _ in
+            withAnimation(.smooth(duration: 0.25)) {
+                selectedBusStopCode = nil
+                selectedBusStopName = nil
+            }
+        }
         .onAppear {
             appState.presentSecondDayProOfferIfNeeded()
         }
@@ -135,23 +141,12 @@ struct ContentView: View {
             .transaction { transaction in
                 transaction.animation = nil
             }
-            .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                geometry.contentOffset.y
-            } action: { _, offset in
-                let shouldCollapse = bottomBarCollapseProgress > 0.5 ? offset > 16 : offset > 72
-                let targetProgress: CGFloat = shouldCollapse ? 1 : 0
-                if targetProgress != bottomBarCollapseProgress {
-                    bottomBarCollapseProgress = targetProgress
-                }
-            }
             .refreshable {
                 appState.refreshCatchability()
                 appState.updateNearbyStops()
                 await appState.refreshActiveLiveBoardIfNeeded()
             }
 
-            bottomBar
-                .frame(maxWidth: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onReceive(appState.$allBusStops) { stops in
@@ -220,47 +215,40 @@ struct ContentView: View {
     // MARK: - Header
 
     private var headerSection: some View {
-        HStack(alignment: .top) {
-            Text("\(Calendar.current.component(.day, from: Date()))")
-                .font(.system(size: 64, weight: .bold))
-                .tracking(64 * -0.025)
-                .foregroundColor(.primary)
-
-            Spacer()
-
-            HStack(spacing: 10) {
-                Button(action: { showSearch = true }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 14, weight: .bold))
-                        Text("Search bus stop")
-                            .font(.system(size: 16, weight: .bold))
-                            .tracking(16 * -0.025)
-                    }
-                    .foregroundColor(.primary)
-                    .padding(.horizontal, 25)
-                    .padding(.vertical, 12)
+        HStack(spacing: 8) {
+            Button { showSearch = true } label: {
+                HStack(spacing: 7) {
+                    Image(systemName: "magnifyingglass")
+                    Text("Search bus stops").lineLimit(1).minimumScaleFactor(0.85)
                 }
-                .glassEffect(.regular.interactive())
-                .clipShape(Capsule())
-
-                Button(action: {
-                    appState.refreshCatchability()
-                    appState.updateNearbyStops()
-                    Task { await appState.refreshActiveLiveBoardIfNeeded() }
-                }) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(.primary)
-                        .frame(width: 42, height: 42)
-                }
-                .glassEffect(.regular.interactive())
-                .clipShape(Circle())
+                .font(.system(size: 15, weight: .semibold))
+                .padding(.horizontal, 12)
+                .frame(height: 44)
+                .frame(maxWidth: .infinity)
             }
-            .padding(.top, 12)
+            .glassEffect(.regular.interactive(), in: Capsule())
+            .accessibilityLabel("Search bus stops")
+            headerButton("arrow.clockwise", label: "Refresh arrivals") {
+                appState.refreshCatchability()
+                appState.updateNearbyStops()
+                Task { await appState.refreshActiveLiveBoardIfNeeded() }
+            }
+            headerButton("plus", label: "Add saved stop") { locationEditorSheet = .add }
+            headerButton("person.crop.circle.fill", label: "Profile") { showProfile = true }
         }
+        .foregroundStyle(.primary)
         .padding(.horizontal, 24)
-        .padding(.top, 8)
+        .padding(.top, 12)
+    }
+
+    private func headerButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: { Haptics.tap(); action() }) {
+            Image(systemName: symbol)
+                .font(.system(size: 17, weight: .semibold))
+                .frame(width: 44, height: 44)
+        }
+        .glassEffect(.regular.interactive(), in: Circle())
+        .accessibilityLabel(label)
     }
 
     // MARK: - Greeting
@@ -289,82 +277,18 @@ struct ContentView: View {
     // MARK: - Saved Locations (Home, Work, custom..., Add)
 
     private var savedLocationsSection: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(appState.savedLocations) { loc in
-                    let colors = pillColors(for: loc)
-                    coloredPill(
-                        name: loc.name,
-                        icon: loc.icon,
-                        bgColor: colors.bg,
-                        fgColor: colors.fg
-                    ) {
-                        if !loc.busStopCode.isEmpty {
-                            withAnimation(.smooth(duration: 0.26)) {
-                                selectedBusStopCode = loc.busStopCode
-                                selectedBusStopName = loc.busStopDescription.isEmpty ? loc.name : loc.busStopDescription
-                            }
-                        }
-                    }
-                    .contextMenu {
-                        Button(action: {
-                            locationEditorSheet = .edit(loc.id)
-                        }) {
-                            Label("Edit", systemImage: "pencil")
-                        }
-                        if loc.id != "home" {
-                            Button(role: .destructive, action: {
-                                withAnimation {
-                                    appState.removeLocation(id: loc.id)
-                                }
-                            }) {
-                                Label("Remove", systemImage: "trash")
-                            }
-                        }
-                    }
+        SavedStopStrip(locations: appState.savedLocations, isDark: colorScheme == .dark,
+            onSelect: { loc in
+                guard !loc.busStopCode.isEmpty else { return }
+                withAnimation(.smooth(duration: 0.26)) {
+                    selectedBusStopCode = loc.busStopCode
+                    selectedBusStopName = loc.busStopDescription.isEmpty ? loc.name : loc.busStopDescription
                 }
-
-                // Add — subtle gray
-                coloredPill(
-                    name: "Add",
-                    icon: "plus.circle",
-                    bgColor: colorScheme == .dark ? Color(hex: "3A3A3A") : Color(hex: "E8E8E8"),
-                    fgColor: colorScheme == .dark ? Color(hex: "CCCCCC") : Color(hex: "666666")
-                ) {
-                    if appState.isProMember || appState.savedLocations.count < appState.freeSavedPlaceLimit {
-                        locationEditorSheet = .add
-                    } else {
-                        appState.presentProPaywall(context: "Unlimited saved stops")
-                    }
-                }
-            }
-            .padding(.horizontal, 24)
-        }
-        .padding(.bottom, 24)
-    }
-
-    private func coloredPill(name: String, icon: String, bgColor: Color, fgColor: Color, action: @escaping () -> Void) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 13, weight: .bold))
-            Text(name)
-                .font(.system(size: 14, weight: .bold))
-                .tracking(14 * -0.025)
-        }
-        .foregroundColor(fgColor)
-        .padding(.horizontal, 18)
-        .padding(.vertical, 10)
-        .background(bgColor)
-        .clipShape(Capsule())
-        .contentShape(Capsule())
-        .onTapGesture(perform: action)
-        .accessibilityAddTraits(.isButton)
-    }
-
-    private func pillColors(for loc: SavedLocation) -> (bg: Color, fg: Color) {
-        let isDark = colorScheme == .dark
-        let accent = Color(hex: loc.colorHex)
-        return (accent.opacity(isDark ? 0.24 : 0.16), accent)
+            }, onMove: { from, to in
+                appState.moveSavedLocations(fromOffsets: IndexSet(integer: from), toOffset: to > from ? to + 1 : to)
+            })
+            .frame(height: 48)
+            .padding(.bottom, 18)
     }
 
     // MARK: - Divider
@@ -436,7 +360,7 @@ struct ContentView: View {
                 .padding(.vertical, 16)
             } else if appState.locationManager.authorizationStatus == .notDetermined {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Allow location access to see nearby stops.")
+                    Text("Use your location to see nearby stops.")
                         .font(.system(size: 16, weight: .bold))
                         .tracking(16 * -0.025)
                         .foregroundColor(Color(hex: "888888"))
@@ -444,7 +368,7 @@ struct ContentView: View {
                     Button(action: {
                         appState.locationManager.requestPermission()
                     }) {
-                        Text("Enable Location")
+                        Text("Continue")
                             .font(.system(size: 14, weight: .bold))
                             .tracking(14 * -0.025)
                             .foregroundColor(.black)
@@ -891,63 +815,6 @@ struct ContentView: View {
 
     // MARK: - Bottom Bar (Liquid Glass)
 
-    private var bottomBar: some View {
-        let progress = bottomBarCollapseProgress
-        let sideSize: CGFloat = 52
-        let plusHeight: CGFloat = 56
-        let plusWidth = 56 + (42 * progress)
-
-        return GeometryReader { proxy in
-            let width = proxy.size.width
-            let centerX = width / 2
-            let sideInset: CGFloat = 24
-            let sideCenterY: CGFloat = 42
-            let expandedLeftX = sideInset + (sideSize / 2)
-            let expandedRightX = width - sideInset - (sideSize / 2)
-            let collapsedLeftX = centerX - 72
-            let collapsedRightX = centerX + 72
-            let settingsX = expandedLeftX + ((collapsedLeftX - expandedLeftX) * progress)
-            let profileX = expandedRightX + ((collapsedRightX - expandedRightX) * progress)
-
-            ZStack {
-                bottomBarIconButton(icon: "gearshape.fill", size: sideSize) {
-                    showSettings = true
-                }
-                .glassEffect(.regular.interactive())
-                .clipShape(Circle())
-                .position(x: settingsX, y: sideCenterY)
-
-                bottomBarIconButton(icon: "plus", size: plusHeight, width: plusWidth) {
-                    openAddSavedPlace()
-                }
-                .glassEffect(.regular.interactive())
-                .clipShape(RoundedRectangle(cornerRadius: 16 + (14 * progress), style: .continuous))
-                .position(x: centerX, y: sideCenterY)
-
-                bottomBarIconButton(icon: "person.fill", size: sideSize) {
-                    showProfile = true
-                }
-                .glassEffect(.regular.interactive())
-                .clipShape(Circle())
-                .position(x: profileX, y: sideCenterY)
-            }
-            .frame(width: width, height: 84)
-            .animation(.spring(response: 0.32, dampingFraction: 0.88), value: bottomBarCollapseProgress)
-        }
-        .frame(height: 84)
-    }
-
-    private func bottomBarIconButton(icon: String, size: CGFloat, width: CGFloat? = nil, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: icon == "plus" ? size * 0.42 : size * 0.38, weight: .bold))
-                .foregroundColor(.primary)
-                .frame(width: width ?? size, height: size)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel(forBottomIcon: icon))
-    }
-
     private func openAddSavedPlace() {
         Haptics.tap(.medium)
         if appState.isProMember || appState.savedLocations.count < appState.freeSavedPlaceLimit {
@@ -991,5 +858,216 @@ extension Color {
             blue: Double(b) / 255,
             opacity: Double(a) / 255
         )
+    }
+}
+
+struct CatchTabView: View {
+    @State private var selectedTab = 0
+    var body: some View {
+        TabView(selection: $selectedTab) {
+            Tab("Home", systemImage: "house.fill", value: 0) { ContentView().background(HomeTabObserver()) }
+            Tab("Maps", systemImage: "map.fill", value: 1) { CatchMapView() }
+            Tab("Settings", systemImage: "gearshape.fill", value: 2) { SettingsView(isTab: true) }
+        }
+        .tint(Color(hex: "5AC8FA"))
+        .onChange(of: selectedTab) { _, tab in
+            Haptics.tap()
+            if tab == 0 { NotificationCenter.default.post(name: .catchHomeSelected, object: nil) }
+        }
+        .onOpenURL { url in
+            guard url.scheme == "catch" else { return }
+            switch url.host {
+            case "maps": selectedTab = 1
+            case "settings": selectedTab = 2
+            case "stop", "home", "widget", "refresh": selectedTab = 0
+            default: break
+            }
+        }
+    }
+}
+
+extension Notification.Name {
+    static let catchHomeSelected = Notification.Name("catch-home-tab-selected")
+}
+
+// UIKit owns the entire drag lifecycle so a SwiftUI scroll/tap recognizer cannot
+// cancel a reorder halfway through. The datasource changes only on a committed drop.
+private struct SavedStopStrip: UIViewRepresentable {
+    let locations: [SavedLocation]
+    let isDark: Bool
+    let onSelect: (SavedLocation) -> Void
+    let onMove: (Int, Int) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+    func makeUIView(context: Context) -> UICollectionView {
+        let layout = UICollectionViewFlowLayout()
+        layout.scrollDirection = .horizontal
+        layout.minimumLineSpacing = 12
+        layout.sectionInset = UIEdgeInsets(top: 5, left: 24, bottom: 5, right: 24)
+        let view = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        view.backgroundColor = .clear
+        view.showsHorizontalScrollIndicator = false
+        view.alwaysBounceHorizontal = true
+        view.register(UICollectionViewCell.self, forCellWithReuseIdentifier: "stop")
+        view.dataSource = context.coordinator
+        view.delegate = context.coordinator
+        view.dragDelegate = context.coordinator
+        view.dropDelegate = context.coordinator
+        view.dragInteractionEnabled = true
+        return view
+    }
+    func updateUIView(_ view: UICollectionView, context: Context) {
+        let coordinator = context.coordinator
+        coordinator.parent = self
+        guard !coordinator.moving else { return }
+        let signature = locations.map { "\($0.id)|\($0.name)|\($0.icon)|\($0.colorHex)" }.joined(separator: ";") + String(isDark)
+        guard coordinator.signature != signature else { return }
+        coordinator.signature = signature
+        coordinator.items = locations
+        view.reloadData()
+    }
+    final class Coordinator: NSObject, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UICollectionViewDragDelegate, UICollectionViewDropDelegate {
+        var parent: SavedStopStrip
+        var items: [SavedLocation]
+        var moving = false
+        var signature = ""
+        init(_ parent: SavedStopStrip) { self.parent = parent; items = parent.locations }
+        func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int { items.count }
+        func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "stop", for: indexPath)
+            let item = items[indexPath.item]
+            let accent = Color(hex: item.colorHex)
+            cell.contentConfiguration = UIHostingConfiguration {
+                HStack(spacing: 8) {
+                    Image(systemName: item.icon).font(.system(size: 13, weight: .bold))
+                    Text(item.name).font(.system(size: 14, weight: .bold)).tracking(-0.35).lineLimit(1)
+                }
+                .foregroundStyle(accent)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(accent.opacity(self.parent.isDark ? 0.24 : 0.16), in: Capsule())
+            }.margins(.all, 0)
+            cell.isAccessibilityElement = true
+            cell.accessibilityLabel = item.name
+            cell.accessibilityHint = "Hold and drag to reorder. Double tap to open stop."
+            cell.accessibilityTraits = .button
+            cell.accessibilityCustomActions = [-1, 1].map { direction in
+                UIAccessibilityCustomAction(name: direction < 0 ? "Move earlier" : "Move later") { [weak self, weak collectionView] _ in
+                    guard let self, let collectionView,
+                          let from = self.items.firstIndex(where: { $0.id == item.id }),
+                          self.items.indices.contains(from + direction) else { return false }
+                    let to = from + direction
+                    self.collectionView(collectionView, moveItemAt: IndexPath(item: from, section: 0), to: IndexPath(item: to, section: 0))
+                    collectionView.moveItem(at: IndexPath(item: from, section: 0), to: IndexPath(item: to, section: 0))
+                    return true
+                }
+            }
+            return cell
+        }
+        func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+            let width = (items[indexPath.item].name as NSString).size(withAttributes: [.font: UIFont.systemFont(ofSize: 14, weight: .bold)]).width
+            return CGSize(width: ceil(width) + 58, height: 38)
+        }
+        func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+            guard !moving else { return }
+            Haptics.tap()
+            parent.onSelect(items[indexPath.item])
+        }
+        func collectionView(_ collectionView: UICollectionView, canMoveItemAt indexPath: IndexPath) -> Bool { items.count > 1 }
+        func collectionView(_ collectionView: UICollectionView, moveItemAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
+            commitMove(from: sourceIndexPath.item, to: destinationIndexPath.item)
+        }
+
+        func collectionView(_ collectionView: UICollectionView, itemsForBeginning session: UIDragSession, at indexPath: IndexPath) -> [UIDragItem] {
+            guard items.count > 1 else { return [] }
+            moving = true
+            Haptics.tap(.medium)
+            let id = items[indexPath.item].id
+            let dragItem = UIDragItem(itemProvider: NSItemProvider(object: id as NSString))
+            dragItem.localObject = id
+            return [dragItem]
+        }
+
+        func collectionView(_ collectionView: UICollectionView, dragSessionDidEnd session: UIDragSession) {
+            moving = false
+        }
+
+        func collectionView(
+            _ collectionView: UICollectionView,
+            dropSessionDidUpdate session: UIDropSession,
+            withDestinationIndexPath destinationIndexPath: IndexPath?
+        ) -> UICollectionViewDropProposal {
+            guard collectionView.hasActiveDrag else {
+                return UICollectionViewDropProposal(operation: .forbidden)
+            }
+            return UICollectionViewDropProposal(operation: .move, intent: .insertAtDestinationIndexPath)
+        }
+
+        func collectionView(_ collectionView: UICollectionView, performDropWith coordinator: UICollectionViewDropCoordinator) {
+            guard let dropped = coordinator.items.first,
+                  let source = dropped.sourceIndexPath else {
+                moving = false
+                return
+            }
+
+            let proposed = coordinator.destinationIndexPath?.item ?? max(items.count - 1, 0)
+            let destination = min(max(proposed, 0), max(items.count - 1, 0))
+            guard source.item != destination else {
+                coordinator.drop(dropped.dragItem, toItemAt: source)
+                moving = false
+                return
+            }
+
+            collectionView.performBatchUpdates {
+                let item = items.remove(at: source.item)
+                items.insert(item, at: destination)
+                collectionView.moveItem(at: source, to: IndexPath(item: destination, section: 0))
+            }
+            coordinator.drop(dropped.dragItem, toItemAt: IndexPath(item: destination, section: 0))
+            finishMove(from: source.item, to: destination)
+        }
+
+        private func commitMove(from: Int, to: Int) {
+            guard from != to, items.indices.contains(from), items.indices.contains(to) else { return }
+            let item = items.remove(at: from)
+            items.insert(item, at: to)
+            finishMove(from: from, to: to)
+        }
+
+        private func finishMove(from: Int, to: Int) {
+            // Match SwiftUI's new order before it publishes, so UIKit can finish the
+            // native lift-and-settle animation without a reload flash.
+            signature = items.map { "\($0.id)|\($0.name)|\($0.icon)|\($0.colorHex)" }.joined(separator: ";") + String(parent.isDark)
+            parent.onMove(from, to)
+            moving = false
+            Haptics.tap()
+        }
+    }
+}
+
+// Observe native tab reselection without replacing its layout or touch handling.
+private struct HomeTabObserver: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> Observer { Observer() }
+    func updateUIViewController(_ controller: Observer, context: Context) {}
+    final class Observer: UIViewController, UITabBarControllerDelegate {
+        private weak var previousDelegate: UITabBarControllerDelegate?
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            if let tabs = tabBarController, tabs.delegate !== self {
+                previousDelegate = tabs.delegate
+                tabs.delegate = self
+            }
+        }
+        func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
+            previousDelegate?.tabBarController?(tabBarController, didSelect: viewController)
+            if tabBarController.selectedIndex == 0 {
+                NotificationCenter.default.post(name: .catchHomeSelected, object: nil)
+            }
+        }
+        override func responds(to selector: Selector!) -> Bool {
+            super.responds(to: selector) || previousDelegate?.responds(to: selector) == true
+        }
+        override func forwardingTarget(for selector: Selector!) -> Any? {
+            previousDelegate?.responds(to: selector) == true ? previousDelegate : super.forwardingTarget(for: selector)
+        }
     }
 }

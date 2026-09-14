@@ -1,6 +1,6 @@
 # Catch Privacy Policy
 
-Effective date: June 6, 2026
+Effective date: September 13, 2026
 
 Catch is a Singapore bus timing app that helps you view bus arrivals, saved places, widgets, Live Board, Live Activities, and leave-now decisions. This Privacy Policy explains what data Catch handles, how it is used, and what choices you have.
 
@@ -16,7 +16,7 @@ Privacy requests: adityaarya1021@gmail.com
 
 Catch is designed to be local-first.
 
-- Catch does not require an account in the current version.
+- Catch creates an anonymous technical account only when you use the Feedback Board. It does not ask for your email address or password.
 - Catch does not sell personal data.
 - Catch does not use third-party advertising SDKs.
 - Catch does not use tracking for targeted advertising.
@@ -35,7 +35,13 @@ If you grant location permission, Catch uses your device location to:
 - estimate walking time to nearby or saved stops;
 - improve local route and trip suggestions.
 
-Your precise location is processed on your device for these features. Catch does not currently run a backend account database that stores your location history.
+Your precise location is processed on your device for these features. Catch does not send your location history to its feedback backend.
+
+### Feedback Board
+
+If you use the Feedback Board, Catch sends the text you submit to Catch's Supabase project. Supabase assigns an anonymous account identifier so the app can show you your own unpublished submissions and apply submission limits. Feedback is private by default. A developer may review it, update its status, add a response, and choose to publish it in the board. Do not include personal or sensitive information in feedback.
+
+The feedback record contains the feedback text, anonymous account identifier, status, optional developer response, publication state, and submission time. It does not include your email address, display name, saved places, bus history, or precise location.
 
 ### Saved Places And Pinned Stops
 
@@ -90,7 +96,7 @@ In the current local-first version, Catch does not intentionally collect or oper
 - financial account data;
 - advertising identifiers;
 - third-party tracking profiles;
-- chat or messaging content.
+- chat or messaging content outside feedback you deliberately submit through the Feedback Board.
 
 If future versions add accounts, cloud sync, analytics, crash reporting, marketing emails, or other services, this Privacy Policy and the App Store privacy disclosures must be updated before release.
 
@@ -115,6 +121,7 @@ Catch may interact with the following third parties or platform services:
 
 - Apple: App Store, StoreKit subscriptions, app installation, device permissions, widgets, Live Activities, and system notification services.
 - LTA DataMall: bus stop and bus arrival data requests.
+- Supabase: anonymous authentication and storage for feedback you submit through the Feedback Board. The current project is hosted in the Asia-Pacific region.
 
 Catch does not sell user data. Catch does not share user data with advertising networks or data brokers.
 
@@ -128,9 +135,7 @@ Catch does not track you across apps or websites owned by other companies for ad
 
 Local app data remains on your device until you delete it in the app, reset the relevant setting, or delete the app. Examples include saved places, pinned buses, app preferences, widget data, and Live Activity state.
 
-Because Catch does not currently operate a backend account database, deleting the app from your device removes the app's local data from that device, subject to normal iOS behavior and any device backups controlled by Apple.
-
-If future versions add cloud sync or accounts, retention and deletion controls must be updated in this policy.
+Deleting the app removes local Catch data from that device, subject to normal iOS behavior and device backups controlled by Apple. Feedback already submitted remains on the feedback backend for moderation, support, abuse prevention, and product planning until it is deleted. The anonymous session credential is stored in the device Keychain and may survive an app reinstall under normal iOS behavior.
 
 ## 9. Deletion And Consent Controls
 
@@ -142,6 +147,7 @@ You can control Catch data and permissions in these ways:
 - turn notification permission off in iOS Settings;
 - turn location permission off in iOS Settings;
 - delete Catch from your device to remove local app data from that device.
+- request deletion of submitted feedback and its anonymous feedback account by contacting adityaarya1021@gmail.com. Because the account is anonymous, Catch may need information visible in the feedback entry to locate the correct record.
 
 To request help with privacy or deletion questions, contact: adityaarya1021@gmail.com.
 

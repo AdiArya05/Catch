@@ -4,13 +4,19 @@ struct BusStopDetailView: View {
     let busStopCode: String
     let busStopName: String
     let onBack: () -> Void
+    var isMapSheet = false
+    var onExpand: () -> Void = {}
 
     @EnvironmentObject var appState: AppState
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var services: [BusService] = []
     @State private var isLoading = true
+    @State private var arrivalsFailed = false
     @State private var timer: Timer?
     @State private var isWatchingLiveActivity = false
+    @State private var isUpdatingLiveActivity = false
+    @State private var showLiveBoardError = false
     @GestureState private var swipeBackTranslation: CGFloat = 0
 
     private var bgColor: Color { colorScheme == .dark ? Color(hex: "292929") : Color(hex: "F5F5F5") }
@@ -30,14 +36,26 @@ struct BusStopDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
+            if isMapSheet {
+                mapSheetHeader
+            } else { header }
 
             ScrollView {
                 LazyVStack(spacing: 16) {
+                    liveBoardButton
                     if isLoading && services.isEmpty {
                         loadingView
                     } else if services.isEmpty {
                         emptyView
+                    }
+                    if arrivalsFailed {
+                        Button {
+                            Task { await loadArrivals() }
+                        } label: {
+                            Label("Couldn’t refresh arrivals. Tap to retry.", systemImage: "arrow.clockwise")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                        }
                     }
 
                     ForEach(displayServices) { service in
@@ -54,34 +72,130 @@ struct BusStopDetailView: View {
         }
         .offset(x: swipeBackTranslation)
         .animation(.interactiveSpring(response: 0.28, dampingFraction: 0.86), value: swipeBackTranslation)
-        .background(bgColor)
+        .background(isMapSheet ? Color.clear : bgColor)
         .task {
             if LiveActivityManager.shared.activeActivity?.attributes.stopCode == busStopCode {
-                isWatchingLiveActivity = true
+                isWatchingLiveActivity = LiveActivityManager.shared.activeActivity?.attributes.stopCode == busStopCode
             }
             await loadArrivals()
+            guard !Task.isCancelled else { return }
             startTimer()
         }
         .onDisappear {
             timer?.invalidate()
         }
+        .alert("Live Board couldn’t start", isPresented: $showLiveBoardError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Check that Live Activities are enabled for Catch in iPhone Settings, then try again.")
+        }
         .contentShape(Rectangle())
+        .simultaneousGesture(DragGesture(minimumDistance: 20).onEnded { value in
+            if isMapSheet, value.translation.height < -40,
+               abs(value.translation.height) > abs(value.translation.width) * 1.5 { onExpand() }
+        })
         .simultaneousGesture(
             DragGesture(minimumDistance: 12)
-                .updating($swipeBackTranslation) { value, state, _ in
-                    guard value.startLocation.x <= 36,
+                .updating($swipeBackTranslation) { value, state, transaction in
+                    transaction.animation = nil
+                    guard !isMapSheet, value.startLocation.x <= 36,
                           value.translation.width > 0,
                           value.translation.width > abs(value.translation.height) * 1.8 else { return }
-                    state = min(value.translation.width, 92)
+                    state = max(0, value.translation.width)
                 }
                 .onEnded { value in
-                    guard value.startLocation.x <= 36,
-                          value.translation.width > 80,
+                    guard !isMapSheet, value.startLocation.x <= 36,
+                          (value.translation.width > 100 || value.predictedEndTranslation.width > 180),
                           value.translation.width > abs(value.translation.height) * 1.8 else { return }
                     Haptics.tap()
                     onBack()
                 }
         )
+    }
+
+    private var liveBoardButton: some View {
+        Button {
+            guard let first = displayServices.first else { return }
+            Haptics.tap(.medium)
+            if appState.isProMember {
+                let target = displayServices.first(where: { isTracking($0) }) ?? first
+                Task { await toggleLiveActivity(for: target) }
+            } else { appState.presentProPaywall(context: "Live Board") }
+        } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: isWatchingLiveActivity ? "stop.fill" : "rectangle.3.group.bubble.left.fill")
+                            .font(.system(size: 13, weight: .black))
+                            .contentTransition(.symbolEffect(.replace))
+                            .foregroundColor(isWatchingLiveActivity ? Color(hex: "FF5A4F") : Color(hex: "5AC8FA"))
+                            .frame(width: 26, height: 26)
+                            .background(Color.white.opacity(colorScheme == .dark ? 0.12 : 0.72))
+                            .clipShape(Circle())
+
+                        Text(isWatchingLiveActivity ? "Stop Live Board" : "Live Board")
+                            .font(.system(size: 17, weight: .black))
+                            .tracking(17 * -0.035)
+
+                        Spacer(minLength: 0)
+
+                        HStack(spacing: 5) {
+                            if !appState.isProMember {
+                                Image(systemName: "lock.fill")
+                                    .font(.system(size: 10, weight: .black))
+                            }
+                            Text(appState.isProMember ? busCountText(displayServices.isEmpty ? 0 : 1) : "Pro")
+                                .font(.system(size: 15, weight: .black))
+                                .tracking(15 * -0.025)
+                        }
+                    }
+                    .foregroundColor(isWatchingLiveActivity ? Color(hex: "FF5A4F") : Color(hex: "5AC8FA"))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 13)
+                    .background((isWatchingLiveActivity ? Color(hex: "FF5A4F") : Color(hex: "5AC8FA")).opacity(colorScheme == .dark ? 0.18 : 0.14))
+                    .clipShape(Capsule())
+        }
+        .buttonStyle(LiveBoardPressStyle())
+        .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: isWatchingLiveActivity)
+        .disabled(displayServices.isEmpty || isUpdatingLiveActivity)
+        .accessibilityLabel(isWatchingLiveActivity ? "Stop Live Board" : "Start Live Board for the first bus")
+    }
+
+    private func liveBoardSymbol(active: Bool) -> some View {
+        Image(systemName: active ? "stop.fill" : "rectangle.3.group.bubble.left.fill")
+            .font(.system(size: 15, weight: .semibold))
+            .contentTransition(.symbolEffect(.replace))
+            .foregroundStyle(active ? Color.red : Color(hex: "5AC8FA"))
+            .frame(width: 34, height: 34)
+            .background((active ? Color.red : Color(hex: "5AC8FA")).opacity(0.15), in: RoundedRectangle(cornerRadius: 13))
+            .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: active)
+    }
+
+    private var mapSheetHeader: some View {
+        HStack(spacing: 12) {
+            Button {
+                Haptics.tap(.medium)
+                if let savedLocation {
+                    appState.removeLocation(id: savedLocation.id)
+                    return
+                }
+                appState.addLocation(SavedLocation(id: UUID().uuidString, name: busStopName, icon: "bus.fill", busStopCode: busStopCode, busStopDescription: busStopName, walkMinutes: walkMinutes ?? 5))
+            } label: {
+                Image(systemName: savedLocation == nil ? "bookmark" : "bookmark.fill")
+                    .font(.system(size: 19, weight: .bold)).frame(width: 44, height: 44)
+            }
+            .glassEffect(.regular.interactive(), in: Circle())
+            .accessibilityLabel(savedLocation == nil ? "Save this bus stop" : "Unpin this bus stop")
+            VStack(spacing: 3) {
+                Text(busStopName).font(.system(size: 21, weight: .bold)).lineLimit(2).minimumScaleFactor(0.8)
+                Text("Bus stop · \(busStopCode)").font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            Button(action: onBack) {
+                Image(systemName: "xmark").font(.system(size: 18, weight: .bold)).frame(width: 44, height: 44)
+            }
+            .glassEffect(.regular.interactive(), in: Circle())
+            .accessibilityLabel("Close bus stop")
+        }
+        .padding(.horizontal, 18).padding(.top, 22).padding(.bottom, 14)
     }
 
     // MARK: - Header
@@ -93,7 +207,7 @@ struct BusStopDetailView: View {
                     Haptics.tap()
                     onBack()
                 }) {
-                    Image(systemName: "chevron.left")
+                    Image(systemName: isMapSheet ? "xmark" : "chevron.left")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.primary)
                         .frame(width: 44, height: 44)
@@ -103,8 +217,8 @@ struct BusStopDetailView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(busStopName)
-                        .font(.system(size: 18, weight: .bold))
-                        .tracking(18 * -0.025)
+                        .font(.system(size: 21, weight: .bold))
+                        .tracking(21 * -0.025)
                         .foregroundColor(.primary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
@@ -142,47 +256,6 @@ struct BusStopDetailView: View {
                 .clipShape(Circle())
             }
 
-            if !services.isEmpty {
-                Button(action: {
-                    Haptics.tap(.medium)
-                    if appState.isProMember {
-                        Task { await toggleLiveActivity() }
-                    } else {
-                        appState.presentProPaywall(context: "Dynamic Island Live Board")
-                    }
-                }) {
-                    HStack(spacing: 12) {
-                        Image(systemName: isWatchingLiveActivity ? "stop.fill" : "rectangle.3.group.bubble.left.fill")
-                            .font(.system(size: 13, weight: .black))
-                            .foregroundColor(isWatchingLiveActivity ? Color(hex: "FF5A4F") : Color(hex: "5AC8FA"))
-                            .frame(width: 26, height: 26)
-                            .background(Color.white.opacity(colorScheme == .dark ? 0.12 : 0.72))
-                            .clipShape(Circle())
-
-                        Text(isWatchingLiveActivity ? "Stop Live Board" : "Live Board")
-                            .font(.system(size: 17, weight: .black))
-                            .tracking(17 * -0.035)
-
-                        Spacer(minLength: 0)
-
-                        HStack(spacing: 5) {
-                            if !appState.isProMember {
-                                Image(systemName: "lock.fill")
-                                    .font(.system(size: 10, weight: .black))
-                            }
-                            Text(appState.isProMember ? busCountText(liveBoardServices.count) : "Pro")
-                                .font(.system(size: 15, weight: .black))
-                                .tracking(15 * -0.025)
-                        }
-                    }
-                    .foregroundColor(isWatchingLiveActivity ? Color(hex: "FF5A4F") : Color(hex: "5AC8FA"))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 13)
-                    .background((isWatchingLiveActivity ? Color(hex: "FF5A4F") : Color(hex: "5AC8FA")).opacity(colorScheme == .dark ? 0.18 : 0.14))
-                    .clipShape(Capsule())
-                }
-                .accessibilityLabel(isWatchingLiveActivity ? "Stop Live Board" : "Start Live Board")
-            }
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
@@ -194,10 +267,7 @@ struct BusStopDetailView: View {
     private func busServiceCard(_ service: BusService) -> some View {
         let isPinned = appState.isBusServicePinned(stopCode: busStopCode, serviceNo: service.ServiceNo)
 
-        return PinRevealBusCard(
-            isPinned: isPinned,
-            onTogglePin: { togglePin(for: service) }
-        ) {
+        return Group {
             VStack(spacing: 14) {
                 HStack(alignment: .center, spacing: 10) {
                     Text(service.ServiceNo)
@@ -209,13 +279,31 @@ struct BusStopDetailView: View {
 
                     Spacer(minLength: 8)
 
-                    if isPinned {
-                        pinnedChip
-                    }
-
                     if let badge = catchabilityBadge(for: service) {
                         catchabilityChip(badge)
                     }
+                    HStack(spacing: 2) {
+                        Button { togglePin(for: service) } label: {
+                            Image(systemName: isPinned ? "pin.fill" : "pin")
+                                .foregroundStyle(isPinned ? Color.blue : Color.secondary)
+                                .frame(width: 40, height: 44).contentShape(Rectangle())
+                        }
+                        .accessibilityLabel("\(isPinned ? "Unpin" : "Pin") bus \(service.ServiceNo)")
+                        Button {
+                            Haptics.tap(.medium)
+                            if appState.isProMember {
+                                Task { await toggleLiveActivity(for: service) }
+                            } else { appState.presentProPaywall(context: "Live Board") }
+                        } label: {
+                            liveBoardSymbol(active: isTracking(service))
+                                .frame(width: 40, height: 44).contentShape(Rectangle())
+                        }
+                        .buttonStyle(LiveBoardPressStyle())
+                        .disabled(isUpdatingLiveActivity)
+                        .accessibilityLabel(isTracking(service) ? "Stop Live Board for bus \(service.ServiceNo)" : "Start Live Board for bus \(service.ServiceNo)")
+                    }
+                    .font(.system(size: 17, weight: .semibold)).buttonStyle(.plain)
+
                 }
 
                 HStack(spacing: 0) {
@@ -237,6 +325,7 @@ struct BusStopDetailView: View {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .stroke(Color.primary.opacity(colorScheme == .dark ? 0.03 : 0.035), lineWidth: 1)
                 )
+
             }
             .padding(16)
             .background(cardBg)
@@ -407,7 +496,7 @@ struct BusStopDetailView: View {
     }
 
     private var emptyView: some View {
-        Text("No bus services at this time.")
+        Text(arrivalsFailed ? "Arrivals unavailable" : "No bus services at this time.")
             .font(.system(size: 16, weight: .bold))
             .tracking(16 * -0.025)
             .foregroundColor(.secondary)
@@ -418,8 +507,11 @@ struct BusStopDetailView: View {
 
     private func loadArrivals() async {
         isLoading = true
+        defer { isLoading = false }
         do {
             let response = try await LTAService.shared.fetchBusArrivals(busStopCode: busStopCode)
+            guard !Task.isCancelled else { return }
+            arrivalsFailed = false
             let sortedServices = sortedServices(response.Services)
             withAnimation(.easeInOut(duration: 0.3)) {
                 services = sortedServices
@@ -427,7 +519,8 @@ struct BusStopDetailView: View {
             if LiveActivityManager.shared.activeActivity?.attributes.stopCode == busStopCode {
                 let trackedServices = appState.liveBoardServices(for: busStopCode, services: sortedServices)
                 await LiveActivityManager.shared.updateStopWatch(services: trackedServices)
-                isWatchingLiveActivity = true
+                isWatchingLiveActivity = LiveActivityManager.shared.activeActivity?.attributes.stopCode == busStopCode
+                if !isWatchingLiveActivity { appState.cancelLiveBoardTripTracking() }
                 appState.updateLiveBoardTrip(
                     stopCode: busStopCode,
                     stopName: busStopName,
@@ -440,15 +533,24 @@ struct BusStopDetailView: View {
                 services: sortedServices
             )
         } catch {
+            guard !Task.isCancelled else { return }
+            arrivalsFailed = true
             #if DEBUG
             print("Failed to load arrivals: \(error)")
             #endif
         }
-        isLoading = false
     }
 
-    private func toggleLiveActivity() async {
-        if isWatchingLiveActivity {
+    private func isTracking(_ service: BusService) -> Bool {
+        isWatchingLiveActivity && LiveActivityManager.shared.activeActivity?.attributes.stopCode == busStopCode &&
+            LiveActivityManager.shared.activeActivity?.content.state.services.first?.serviceNo == service.ServiceNo
+    }
+
+    private func toggleLiveActivity(for service: BusService) async {
+        guard !isUpdatingLiveActivity else { return }
+        isUpdatingLiveActivity = true
+        defer { isUpdatingLiveActivity = false }
+        if isTracking(service) {
             await LiveActivityManager.shared.endAll()
             appState.cancelLiveBoardTripTracking()
             isWatchingLiveActivity = false
@@ -456,14 +558,19 @@ struct BusStopDetailView: View {
             let targetCode = busStopCode
             let targetName = busStopName
             let targetWalkMinutes = walkMinutes
-            let targetServices = services
+            let targetServices = [service]
 
             await LiveActivityManager.shared.startStopWatch(
                 stopCode: targetCode,
                 stopName: targetName,
                 walkMinutes: targetWalkMinutes,
-                services: appState.liveBoardServices(for: targetCode, services: targetServices)
+                services: targetServices,
+                roadName: appState.allBusStops.first { $0.BusStopCode == targetCode }?.RoadName
             )
+            guard LiveActivityManager.shared.activeActivity?.attributes.stopCode == targetCode else {
+                showLiveBoardError = true
+                return
+            }
             appState.beginLiveBoardTrip(
                 stopCode: targetCode,
                 stopName: targetName,
@@ -474,7 +581,8 @@ struct BusStopDetailView: View {
                 preferredStopName: targetName,
                 services: targetServices
             )
-            isWatchingLiveActivity = true
+            isWatchingLiveActivity = LiveActivityManager.shared.activeActivity?.attributes.stopCode == targetCode
+            if !isWatchingLiveActivity { appState.cancelLiveBoardTripTracking() }
         }
     }
 
@@ -483,6 +591,10 @@ struct BusStopDetailView: View {
             let aPinned = appState.isBusServicePinned(stopCode: busStopCode, serviceNo: a.ServiceNo)
             let bPinned = appState.isBusServicePinned(stopCode: busStopCode, serviceNo: b.ServiceNo)
             if aPinned != bPinned { return aPinned && !bPinned }
+            if aPinned, let first = appState.firstPinnedBusService(for: busStopCode) {
+                if a.ServiceNo == first { return b.ServiceNo != first }
+                if b.ServiceNo == first { return false }
+            }
 
             let numA = Int(a.ServiceNo.filter { $0.isNumber }) ?? 0
             let numB = Int(b.ServiceNo.filter { $0.isNumber }) ?? 0
@@ -508,6 +620,8 @@ struct BusStopDetailView: View {
                 await LiveActivityManager.shared.updateStopWatch(
                     services: appState.liveBoardServices(for: busStopCode, services: services)
                 )
+                isWatchingLiveActivity = LiveActivityManager.shared.activeActivity?.attributes.stopCode == busStopCode
+                if !isWatchingLiveActivity { appState.cancelLiveBoardTripTracking() }
                 await appState.refreshWidgetSnapshot(
                     preferredStopCode: busStopCode,
                     preferredStopName: busStopName,
@@ -526,75 +640,12 @@ struct BusStopDetailView: View {
     }
 }
 
-private struct PinRevealBusCard<Content: View>: View {
-    let isPinned: Bool
-    let onTogglePin: () -> Void
-    @ViewBuilder let content: () -> Content
-
-    @Environment(\.colorScheme) private var colorScheme
-    @State private var offsetX: CGFloat = 0
-    @State private var isOpen = false
-
-    private let revealWidth: CGFloat = 112
-
-    var body: some View {
-        ZStack(alignment: .leading) {
-            pinButton
-                .opacity(offsetX > 8 ? 1 : 0)
-                .scaleEffect(offsetX > 8 ? 1 : 0.92, anchor: .leading)
-
-            content()
-                .offset(x: offsetX)
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 24)
-                        .onChanged { value in
-                            let base = isOpen ? revealWidth : 0
-                            let proposed = base + value.translation.width
-                            guard value.translation.width > 0 || isOpen else { return }
-                            guard abs(value.translation.width) > abs(value.translation.height) * 1.7 else { return }
-                            offsetX = min(revealWidth, max(0, proposed))
-                        }
-                        .onEnded { value in
-                            guard abs(value.translation.width) > abs(value.translation.height) * 1.7 else {
-                                withAnimation(.spring(response: 0.28, dampingFraction: 0.84)) {
-                                    offsetX = isOpen ? revealWidth : 0
-                                }
-                                return
-                            }
-                            let shouldOpen = offsetX > revealWidth * 0.44 || value.predictedEndTranslation.width > 92
-                            withAnimation(.spring(response: 0.28, dampingFraction: 0.84)) {
-                                isOpen = shouldOpen
-                                offsetX = shouldOpen ? revealWidth : 0
-                            }
-                        }
-                )
-        }
-        .animation(.spring(response: 0.28, dampingFraction: 0.84), value: offsetX)
-    }
-
-    private var pinButton: some View {
-        Button {
-            Haptics.tap(.medium)
-            onTogglePin()
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.84)) {
-                isOpen = false
-                offsetX = 0
-            }
-        } label: {
-            HStack(spacing: 7) {
-                Image(systemName: isPinned ? "pin.slash.fill" : "pin.fill")
-                    .font(.system(size: 13, weight: .black))
-                Text(isPinned ? "Unpin" : "Pin")
-                    .font(.system(size: 15, weight: .black))
-                    .tracking(15 * -0.025)
-            }
-            .foregroundColor(.white)
-            .frame(width: 96, height: 44)
-            .background(isPinned ? Color(hex: "FF5A4F") : Color(hex: "0A84FF"))
-            .clipShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .padding(.leading, 6)
-        .accessibilityLabel(isPinned ? "Unpin bus" : "Pin bus")
+private struct LiveBoardPressStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
+            .opacity(configuration.isPressed ? 0.8 : 1)
+            .animation(reduceMotion ? nil : .smooth(duration: 0.2), value: configuration.isPressed)
     }
 }

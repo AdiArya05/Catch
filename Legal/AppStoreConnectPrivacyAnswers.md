@@ -1,6 +1,6 @@
 # Catch App Store Connect Privacy Answers
 
-Last reviewed: June 6, 2026
+Last reviewed: September 14, 2026
 
 Use this as the App Store Connect privacy-label draft for the current local-first Catch build. Re-check it whenever the app adds accounts, cloud sync, analytics, crash reporting, ads, a backend, or any new SDK.
 
@@ -32,9 +32,14 @@ Reason: Catch does not track users across apps or websites for advertising or ad
 
 ## Data Collection
 
-Recommended answer for the current build: Data Not Collected by the developer.
+Recommended answer for the current build: Data is collected by the developer.
 
-Reason: Catch is local-first. Location, saved places, pinned buses, settings, notification preferences, and widget/live activity state are processed or stored on device and are not transmitted to a Catch-controlled backend. Apple says data processed only on device is not considered collected for App Store privacy answers.
+Catch remains local-first for location, saved places, pinned buses, settings, notification preferences, receipts, and widget/live activity state. The Feedback Board adds two collected data types:
+
+- **User Content → Other User Content**: feedback text, linked to the anonymous feedback account, used for App Functionality, and not used for tracking.
+- **Identifiers → User ID**: a Supabase-generated anonymous account identifier used to show a person their unpublished submissions and enforce abuse limits, linked to that anonymous account, used for App Functionality, and not used for tracking.
+
+No email address, name, advertising identifier, saved place, bus history, or precise location is sent with feedback.
 
 Important nuance:
 
@@ -50,10 +55,8 @@ Do not select these unless the code changes:
 - Health and Fitness
 - Financial Info
 - Contacts
-- User Content
 - Browsing History
 - Search History
-- Identifiers
 - Usage Data
 - Diagnostics
 - Other Data
@@ -73,7 +76,7 @@ NSPrivacyAccessedAPICategoryUserDefaults
 Reason: CA92.1
 ```
 
-This covers app preferences, onboarding state, Pro state, widget sharing flags, and local feature toggles.
+This covers app preferences, onboarding state, Pro state, widget sharing flags, and local feature toggles. The manifest also declares Other User Content and User ID for the Feedback Board.
 
 ## Subscription Review Notes
 

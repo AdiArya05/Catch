@@ -11,12 +11,14 @@ private enum CatchLegalURL {
 }
 
 struct SettingsView: View {
+    var isTab = false
     var onDismiss: (() -> Void)?
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
     @Environment(\.requestReview) private var requestReview
+    @State private var showFeedback = false
     @State private var showSavedPlaces = false
     @State private var showEditName = false
     @State private var editedName = ""
@@ -24,16 +26,14 @@ struct SettingsView: View {
     @State private var selectedAppIconName: String? = UIApplication.shared.alternateIconName
     @State private var appIconErrorMessage: String?
 
-    private var bgColor: Color { colorScheme == .dark ? Color(hex: "0F0F0F") : Color(hex: "F5F5F5") }
+    private var bgColor: Color { colorScheme == .dark ? Color(hex: "292929") : Color(hex: "F5F5F5") }
     private var dotColor: Color { colorScheme == .dark ? Color(hex: "3A3A3A") : Color(hex: "CCCCCC") }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
-                    settingsHeader
-                        .padding(.bottom, 24)
-
+                    if !isTab { settingsHeader.padding(.bottom, 24) }
                     // Display name
                     Button(action: {
                         editedName = appState.userName
@@ -209,9 +209,9 @@ struct SettingsView: View {
                     dotLine
 
                     Button {
-                        openURL(CatchLegalURL.feedback)
+                        Haptics.tap(); showFeedback = true
                     } label: {
-                        row(icon: "envelope", iconColor: Color(hex: "5AC8FA"), label: "Send Feedback") {
+                        row(icon: "envelope", iconColor: Color(hex: "5AC8FA"), label: "Feedback Board") {
                             EmptyView()
                         }
                     }
@@ -278,6 +278,7 @@ struct SettingsView: View {
             Button("Save") { appState.saveUserName(editedName) }
             Button("Cancel", role: .cancel) {}
         }
+        .sheet(isPresented: $showFeedback) { FeedbackBoardView() }
         .sheet(isPresented: $showSavedPlaces) {
             SavedPlacesListView()
         }
@@ -299,7 +300,7 @@ struct SettingsView: View {
             HStack {
                 Spacer()
 
-                GlassCircleIconButton(
+                if !isTab { GlassCircleIconButton(
                     systemName: "xmark",
                     foregroundColor: .secondary
                 ) {
@@ -308,7 +309,7 @@ struct SettingsView: View {
                     } else {
                         dismiss()
                     }
-                }
+                } }
             }
         }
         .frame(height: 64)
@@ -513,7 +514,7 @@ private struct LegalTextView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            (colorScheme == .dark ? Color(hex: "0F0F0F") : Color(hex: "F5F5F5")).ignoresSafeArea()
+            (colorScheme == .dark ? Color(hex: "292929") : Color(hex: "F5F5F5")).ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
@@ -609,7 +610,7 @@ private struct AppIconPickerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
-    private var bgColor: Color { colorScheme == .dark ? Color(hex: "0F0F0F") : Color(hex: "F5F5F5") }
+    private var bgColor: Color { colorScheme == .dark ? Color(hex: "292929") : Color(hex: "F5F5F5") }
     private var cardBg: Color { colorScheme == .dark ? Color(hex: "1C1C1E") : Color.white }
 
     var body: some View {
@@ -710,53 +711,43 @@ struct SavedPlacesListView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var locationEditorSheet: SavedPlacesLocationEditorSheet?
     @State private var showSavedPlacesProPaywall = false
+    @State private var savedPlacesEditMode: EditMode = .inactive
 
-    private var bgColor: Color { colorScheme == .dark ? Color(hex: "0F0F0F") : Color(hex: "F5F5F5") }
-    private var dotColor: Color { colorScheme == .dark ? Color(hex: "3A3A3A") : Color(hex: "CCCCCC") }
+    private var bgColor: Color { colorScheme == .dark ? Color(hex: "292929") : Color(hex: "F5F5F5") }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 0) {
-                    ForEach(Array(appState.savedLocations.enumerated()), id: \.element.id) { index, loc in
-                        SwipeDeleteSavedPlaceRow(
-                            location: loc,
-                            iconColor: iconColor(for: loc),
-                            canDelete: loc.id != "home",
-                            onTap: {
-                                locationEditorSheet = .edit(loc.id)
-                            },
-                            onDelete: {
-                                Haptics.tap(.medium)
-                                withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
-                                    appState.removeLocation(id: loc.id)
-                                }
+            List {
+                ForEach(appState.savedLocations) { loc in
+                    SwipeDeleteSavedPlaceRow(
+                        location: loc,
+                        iconColor: iconColor(for: loc),
+                        canDelete: loc.id != "home",
+                        onTap: {
+                            locationEditorSheet = .edit(loc.id)
+                        },
+                        onDelete: {
+                            Haptics.tap(.medium)
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
+                                appState.removeLocation(id: loc.id)
                             }
-                        )
-
-                        if index < appState.savedLocations.count - 1 {
-                            GeometryReader { geo in
-                                let dotSize: CGFloat = 2
-                                let spacing: CGFloat = 5
-                                let count = Int(geo.size.width / (dotSize + spacing))
-                                HStack(spacing: spacing) {
-                                    ForEach(0..<count, id: \.self) { _ in
-                                        Circle()
-                                            .fill(dotColor)
-                                            .frame(width: dotSize, height: dotSize)
-                                    }
-                                }
-                                .frame(maxWidth: .infinity)
-                            }
-                            .frame(height: 2)
                         }
+                    )
+                    .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(bgColor)
+                }
+                .onMove { source, destination in
+                    Haptics.tap(.light)
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                        appState.moveSavedLocations(fromOffsets: source, toOffset: destination)
                     }
                 }
-                .padding(.horizontal, 24)
-                .padding(.top, 8)
-                .padding(.bottom, 40)
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
             .background(bgColor)
+            .environment(\.editMode, $savedPlacesEditMode)
             .navigationTitle("Saved Places")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -767,7 +758,13 @@ struct SavedPlacesListView: View {
                             .foregroundColor(.primary)
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button(savedPlacesEditMode == .active ? "Done" : "Reorder") {
+                        Haptics.tap()
+                        withAnimation(.smooth(duration: 0.25)) { savedPlacesEditMode = savedPlacesEditMode == .active ? .inactive : .active }
+                    }
+                    .disabled(appState.savedLocations.count < 2)
+
                     Button(action: {
                         if appState.isProMember || appState.savedLocations.count < appState.freeSavedPlaceLimit {
                             locationEditorSheet = .add
@@ -802,6 +799,7 @@ struct SavedPlacesListView: View {
 }
 
 private struct SwipeDeleteSavedPlaceRow: View {
+    @Environment(\.editMode) private var editMode
     let location: SavedLocation
     let iconColor: Color
     let canDelete: Bool
@@ -861,20 +859,21 @@ private struct SwipeDeleteSavedPlaceRow: View {
                         .foregroundColor(Color(hex: "555555"))
                 }
                 .padding(.vertical, 16)
-                .background(colorScheme == .dark ? Color(hex: "0F0F0F") : Color(hex: "F5F5F5"))
+                .background(colorScheme == .dark ? Color(hex: "292929") : Color(hex: "F5F5F5"))
                 .offset(x: offsetX)
                 .gesture(
                     DragGesture(minimumDistance: 18)
                         .onChanged { value in
-                            guard canDelete else { return }
+                            guard canDelete, editMode?.wrappedValue != .active else { return }
                             offsetX = min(0, max(-112, value.translation.width))
                         }
                         .onEnded { value in
-                            guard canDelete else { return }
+                            guard canDelete, editMode?.wrappedValue != .active else { return }
                             withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
                                 offsetX = value.translation.width < -56 ? -112 : 0
                             }
-                        }
+                        },
+                    including: editMode?.wrappedValue == .active ? .none : .all
                 )
             }
             .buttonStyle(.plain)

@@ -11,18 +11,22 @@ final class LiveActivityManager {
         Activity<CatchStopActivityAttributes>.activities.first
     }
 
-    func startStopWatch(stopCode: String, stopName: String, walkMinutes: Int?, services: [BusService]) async {
-        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+    func startStopWatch(stopCode: String, stopName: String, walkMinutes: Int?, services: [BusService], roadName: String? = nil) async {
+        guard !services.isEmpty, ActivityAuthorizationInfo().areActivitiesEnabled else { return }
 
         let attributes = CatchStopActivityAttributes(
             stopCode: stopCode,
             stopName: stopName,
             stopShortName: Self.shortStopName(from: stopName),
-            walkMinutes: walkMinutes
+            walkMinutes: walkMinutes,
+            roadName: roadName
         )
+        let now = Date()
+        let timings = Self.timelineServices(from: services)
         let state = CatchStopActivityAttributes.ContentState(
-            services: Self.timelineServices(from: services),
-            updatedAt: Date()
+            services: timings,
+            updatedAt: now,
+            progressStartedAt: Self.progressStart(arrival: timings.first?.arrivalDate, now: now)
         )
 
         await endAll()
@@ -30,7 +34,7 @@ final class LiveActivityManager {
         do {
             _ = try Activity.request(
                 attributes: attributes,
-                content: ActivityContent(state: state, staleDate: Date().addingTimeInterval(90)),
+                content: ActivityContent(state: state, staleDate: Self.staleDate(for: state)),
                 pushType: nil
             )
         } catch {
@@ -42,11 +46,27 @@ final class LiveActivityManager {
 
     func updateStopWatch(services: [BusService]) async {
         guard let activeActivity else { return }
+        guard !services.isEmpty else {
+            await endAll()
+            return
+        }
+        let previous = activeActivity.content.state
+        let timings = Self.timelineServices(from: services)
+        let sameBus = timings.first?.serviceNo == previous.services.first?.serviceNo
+        let previousArrival = previous.services.first?.arrivalDate
+        let nextArrival = timings.first?.arrivalDate
+        // Start a fresh journey when the prediction rolls over to the next bus.
+        let rolledOver = previousArrival.map { old in
+            old <= Date() && (nextArrival?.timeIntervalSince(old) ?? 0) > 60
+        } ?? false
+        let now = Date()
+        let baseline = Self.progressStart(arrival: nextArrival, now: now)
         let state = CatchStopActivityAttributes.ContentState(
-            services: Self.timelineServices(from: services),
-            updatedAt: Date()
+            services: timings,
+            updatedAt: now,
+            progressStartedAt: sameBus && !rolledOver ? min(previous.progressStartedAt ?? baseline, baseline) : baseline
         )
-        await activeActivity.update(ActivityContent(state: state, staleDate: Date().addingTimeInterval(90)))
+        await activeActivity.update(ActivityContent(state: state, staleDate: Self.staleDate(for: state)))
     }
 
     func endAll() async {
@@ -55,8 +75,22 @@ final class LiveActivityManager {
         }
     }
 
+    // An arrival within fifteen minutes starts partway through the approach,
+    // instead of measuring how long the person has had Live Board open.
+    private static func progressStart(arrival: Date?, now: Date) -> Date {
+        min(now, (arrival ?? now).addingTimeInterval(-15 * 60))
+    }
+
+    private static func staleDate(for state: CatchStopActivityAttributes.ContentState) -> Date {
+        let freshnessLimit = state.updatedAt.addingTimeInterval(90)
+        guard let arrival = state.services.first?.arrivalDate else { return freshnessLimit }
+        // Preserve the explicitly labelled estimate until that bus is due.
+        // Foreground refresh replaces it; after arrival the OS marks it stale.
+        return max(state.updatedAt, arrival.addingTimeInterval(30))
+    }
+
     private static func timelineServices(from services: [BusService]) -> [CatchStopActivityAttributes.ServiceTiming] {
-        services
+        services.prefix(1)
             .map { service in
                 CatchStopActivityAttributes.ServiceTiming(
                     serviceNo: service.ServiceNo,
@@ -74,17 +108,11 @@ final class LiveActivityManager {
                         service.NextBus.Feature,
                         service.NextBus2.Feature,
                         service.NextBus3.Feature
-                    ]
+                    ],
+                    arrivalDate: service.NextBus.arrivalDate,
+                    load: service.NextBus.Load
                 )
             }
-            .sorted { lhs, rhs in
-                serviceSortKey(lhs.serviceNo) < serviceSortKey(rhs.serviceNo)
-            }
-    }
-
-    private static func serviceSortKey(_ service: String) -> (Int, String) {
-        let number = Int(service.prefix { $0.isNumber }) ?? Int.max
-        return (number, service)
     }
 
     private static func shortStopName(from name: String) -> String {

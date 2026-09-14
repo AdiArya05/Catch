@@ -5,6 +5,7 @@ struct CatchStopActivityAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
         var services: [ServiceTiming]
         var updatedAt: Date
+        var progressStartedAt: Date? = nil
     }
 
     struct ServiceTiming: Codable, Hashable, Identifiable {
@@ -13,6 +14,8 @@ struct CatchStopActivityAttributes: ActivityAttributes {
         let arrivals: [Int?]
         let busTypes: [String?]
         let features: [String?]
+        var arrivalDate: Date? = nil
+        var load: String? = nil
 
         var nextArrivalText: String {
             guard let first = arrivals.first ?? nil else { return "—" }
@@ -32,4 +35,5 @@ struct CatchStopActivityAttributes: ActivityAttributes {
     let stopName: String
     let stopShortName: String
     let walkMinutes: Int?
+    var roadName: String? = nil
 }

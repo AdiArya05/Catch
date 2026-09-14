@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FB2609130000000000000032 /* FeedbackConfig.plist in Resources */ = {isa = PBXBuildFile; fileRef = FB2609130000000000000031 /* FeedbackConfig.plist */; };
+		FB2609130000000000000022 /* FeedbackService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2609130000000000000021 /* FeedbackService.swift */; };
+		FB2609130000000000000012 /* FeedbackBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2609130000000000000011 /* FeedbackBoardView.swift */; };
+		DA2609120000000000000001 /* CatchMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2609120000000000000002 /* CatchMapView.swift */; };
 		A10000010000000000000001 /* CatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000001 /* CatchApp.swift */; };
 		A10000010000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000002 /* ContentView.swift */; };
 		A10000010000000000000003 /* BusModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000010000000000000003 /* BusModels.swift */; };
@@ -71,6 +75,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		FB2609130000000000000031 /* FeedbackConfig.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = FeedbackConfig.plist; sourceTree = "<group>"; };
+		FB2609130000000000000021 /* FeedbackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackService.swift; sourceTree = "<group>"; };
+		FB2609130000000000000011 /* FeedbackBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackBoardView.swift; sourceTree = "<group>"; };
+		DA2609120000000000000002 /* CatchMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatchMapView.swift; sourceTree = "<group>"; };
 		A20000010000000000000001 /* CatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatchApp.swift; sourceTree = "<group>"; };
 		A20000010000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A20000010000000000000003 /* BusModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusModels.swift; sourceTree = "<group>"; };
@@ -147,6 +155,7 @@
 				A20000010000000000000013 /* Info.plist */,
 				A20000010000000000000025 /* PrivacyInfo.xcprivacy */,
 				D20000010000000000000006 /* Catch.entitlements */,
+				FB2609130000000000000031 /* FeedbackConfig.plist */,
 				A50000010000000000000003 /* Models */,
 				A50000010000000000000004 /* Views */,
 				A50000010000000000000005 /* Services */,
@@ -170,6 +179,8 @@
 			isa = PBXGroup;
 			children = (
 				A20000010000000000000002 /* ContentView.swift */,
+				DA2609120000000000000002 /* CatchMapView.swift */,
+				FB2609130000000000000011 /* FeedbackBoardView.swift */,
 				A20000010000000000000007 /* BusStopDetailView.swift */,
 				A20000010000000000000008 /* SearchView.swift */,
 				A20000010000000000000009 /* AddLocationView.swift */,
@@ -185,6 +196,7 @@
 			isa = PBXGroup;
 			children = (
 				A20000010000000000000004 /* LTAService.swift */,
+				FB2609130000000000000021 /* FeedbackService.swift */,
 				A20000010000000000000005 /* LocationManager.swift */,
 				A20000010000000000000006 /* AppState.swift */,
 				A20000010000000000000015 /* OpenAIService.swift */,
@@ -337,6 +349,7 @@
 			files = (
 				A10000010000000000000011 /* Assets.xcassets in Resources */,
 				A10000010000000000000025 /* PrivacyInfo.xcprivacy in Resources */,
+				FB2609130000000000000032 /* FeedbackConfig.plist in Resources */,
 				A10000010000000000000012 /* Preview Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -366,9 +379,12 @@
 			files = (
 				A10000010000000000000001 /* CatchApp.swift in Sources */,
 				A10000010000000000000002 /* ContentView.swift in Sources */,
+				DA2609120000000000000001 /* CatchMapView.swift in Sources */,
+				FB2609130000000000000012 /* FeedbackBoardView.swift in Sources */,
 				A10000010000000000000003 /* BusModels.swift in Sources */,
 				C10000010000000000000001 /* CatchStopActivityAttributes.swift in Sources */,
 				A10000010000000000000004 /* LTAService.swift in Sources */,
+				FB2609130000000000000022 /* FeedbackService.swift in Sources */,
 				A10000010000000000000005 /* LocationManager.swift in Sources */,
 				A10000010000000000000006 /* AppState.swift in Sources */,
 				C10000010000000000000002 /* LiveActivityManager.swift in Sources */,
@@ -546,7 +562,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Catch/Catch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_ASSET_PATHS = "\"Catch/Preview Content\"";
 				DEVELOPMENT_TEAM = 56N7X7AGCM;
 				ENABLE_PREVIEWS = YES;
@@ -563,7 +579,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adityaarya.catch;
 				PRODUCT_NAME = Catch;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -582,7 +598,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Catch/Catch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_ASSET_PATHS = "\"Catch/Preview Content\"";
 				DEVELOPMENT_TEAM = 56N7X7AGCM;
 				ENABLE_PREVIEWS = YES;
@@ -599,7 +615,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adityaarya.catch;
 				PRODUCT_NAME = Catch;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -615,7 +631,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = 56N7X7AGCM;
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -626,7 +642,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adityaarya.catch.CatchLiveActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -643,7 +659,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = 56N7X7AGCM;
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -654,7 +670,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adityaarya.catch.CatchLiveActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -672,7 +688,7 @@
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_ENTITLEMENTS = CatchWidgets/CatchWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = 56N7X7AGCM;
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -683,7 +699,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adityaarya.catch.CatchWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -701,7 +717,7 @@
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_ENTITLEMENTS = CatchWidgets/CatchWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = 56N7X7AGCM;
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -712,7 +728,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adityaarya.catch.CatchWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

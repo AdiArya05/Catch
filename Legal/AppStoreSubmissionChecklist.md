@@ -1,8 +1,8 @@
 # Catch App Store Legal And Privacy Checklist
 
-Last reviewed: June 6, 2026
+Last reviewed: September 14, 2026
 
-This checklist is based on Apple developer documentation and Catch's current local-first implementation. It is not legal advice. Review with counsel before submission.
+This checklist is based on Apple developer documentation and Catch's local-first app data plus its feedback backend. It is not legal advice. Review with counsel before submission.
 
 ## Required Before App Review
 
@@ -22,13 +22,14 @@ This checklist is based on Apple developer documentation and Catch's current loc
 
 ## Catch Privacy Label Draft
 
-Current app behavior appears local-first, with no backend account database, no ads, and no tracking. Final labels must be checked against the final binary and every SDK before submission.
+Current app behavior is local-first except for the Supabase-backed Feedback Board. Catch has no ads and no tracking. Final labels must be checked against the final binary and every SDK before submission.
 
 Likely disclosures:
 
 - Location: used on device for nearby stops and catchability. If not transmitted off device or retained by a third party beyond real-time request servicing, Apple says on-device data is not "collected" for privacy label purposes. Confirm final implementation before answering.
 - Purchases: Apple handles payment; Catch receives entitlement status. If Catch does not collect purchase history on a developer server, payment information is not collected by Catch.
-- User Content / Other Data: saved places, display name, and pinned buses are currently local. If never transmitted off device, they may not be "collected" for the privacy label, but they must still be explained in the Privacy Policy because the app handles them.
+- User Content: saved places, display name, and pinned buses remain local. Feedback text is sent to Supabase and must be disclosed as Other User Content used for App Functionality.
+- Identifiers: the feedback backend creates an anonymous user ID. Disclose User ID used for App Functionality; it is not used for tracking.
 - Diagnostics / Analytics: do not disclose unless an analytics or crash SDK is added.
 - Tracking: No, unless an advertising/analytics SDK or data broker sharing is added.
 

@@ -8,9 +8,9 @@ private enum CatchPaywallLegalURL {
 
 struct ProPaywallView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject private var store: CatchProStore
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
-    @StateObject private var store = CatchProStore()
     @State private var selectedPlan: CatchProPlan = .monthly
     @State private var selectedFeaturePage = 0
     @State private var isPricingExpanded = false
@@ -105,12 +105,8 @@ struct ProPaywallView: View {
         }
         .preferredColorScheme(.dark)
         .task {
-            await store.loadProducts()
-            #if !DEBUG
-            if !appState.isProMember, await store.refreshEntitlements() {
-                appState.setProMembership(true)
-            }
-            #endif
+            await store.prepare()
+            appState.setProMembership(store.hasActiveEntitlement)
         }
     }
 
@@ -151,10 +147,6 @@ struct ProPaywallView: View {
 
                 Button {
                     Haptics.tap(.medium)
-                    #if DEBUG
-                    appState.setProMembership(true)
-                    unlockPaywall()
-                    #else
                     Task {
                         let didUnlock = await store.purchase(selectedPlan)
                         if didUnlock {
@@ -162,7 +154,6 @@ struct ProPaywallView: View {
                             unlockPaywall()
                         }
                     }
-                    #endif
                 } label: {
                     AnimatedTrialButtonLabel(
                         title: store.subscribeButtonTitle(for: selectedPlan),
@@ -716,26 +707,48 @@ enum CatchProPlan: CaseIterable {
 @MainActor
 final class CatchProStore: ObservableObject {
     @Published private(set) var products: [Product] = []
+    @Published private(set) var hasActiveEntitlement = false
+    @Published private(set) var isLoadingProducts = false
     @Published var isPurchasing = false
     @Published var statusMessage: String?
     @Published var statusIsError = false
 
     private static let productIDs = Set(CatchProPlan.allCases.map(\.productID))
 
+    init() {
+        Task { [weak self] in
+            for await update in Transaction.updates {
+                guard let transaction = try? Self.checkVerified(update) else { continue }
+                await transaction.finish()
+                _ = await self?.refreshEntitlements()
+            }
+        }
+    }
+
+    func prepare() async {
+        if products.isEmpty {
+            await loadProducts()
+        }
+        _ = await refreshEntitlements()
+    }
+
     func loadProducts() async {
+        isLoadingProducts = true
+        defer { isLoadingProducts = false }
         do {
             products = try await Product.products(for: Self.productIDs)
                 .sorted { lhs, rhs in
                     productOrder(lhs.id) < productOrder(rhs.id)
                 }
             if products.isEmpty {
-                statusMessage = "Subscriptions are ready in the UI. Add these product IDs in App Store Connect to test purchases."
-                statusIsError = false
+                statusMessage = "Subscriptions are temporarily unavailable. Please try again."
+                statusIsError = true
             } else {
                 statusMessage = nil
+                statusIsError = false
             }
         } catch {
-            statusMessage = "Could not load subscriptions."
+            statusMessage = "Could not load subscriptions. Check your connection and try again."
             statusIsError = true
         }
     }
@@ -794,7 +807,7 @@ final class CatchProStore: ObservableObject {
     }
 
     private func hasIntroOffer(for plan: CatchProPlan) -> Bool {
-        guard let product = product(for: plan) else { return true }
+        guard let product = product(for: plan) else { return false }
         return product.subscription?.introductoryOffer != nil
     }
 
@@ -843,8 +856,11 @@ final class CatchProStore: ObservableObject {
     }
 
     func purchase(_ plan: CatchProPlan) async -> Bool {
+        if product(for: plan) == nil {
+            await loadProducts()
+        }
         guard let product = product(for: plan) else {
-            statusMessage = "Create \(plan.productID) in App Store Connect first."
+            statusMessage = "This subscription is temporarily unavailable. Please try again."
             statusIsError = true
             return false
         }
@@ -858,14 +874,23 @@ final class CatchProStore: ObservableObject {
             case .success(let verification):
                 let transaction = try checkVerified(verification)
                 await transaction.finish()
-                return await refreshEntitlements()
-            case .userCancelled, .pending:
+                let isActive = await refreshEntitlements()
+                if !isActive {
+                    statusMessage = "Your purchase is still being processed. Try Restore Purchases shortly."
+                    statusIsError = false
+                }
+                return isActive
+            case .userCancelled:
+                return false
+            case .pending:
+                statusMessage = "Your purchase is pending approval."
+                statusIsError = false
                 return false
             @unknown default:
                 return false
             }
         } catch {
-            statusMessage = "Purchase could not be completed."
+            statusMessage = "Purchase could not be completed. Please try again."
             statusIsError = true
             return false
         }
@@ -892,8 +917,10 @@ final class CatchProStore: ObservableObject {
 
     func refreshEntitlements() async -> Bool {
         let isActive = await Self.hasActiveProEntitlement()
+        hasActiveEntitlement = isActive
         if isActive {
             statusMessage = nil
+            statusIsError = false
         }
         return isActive
     }
@@ -903,6 +930,7 @@ final class CatchProStore: ObservableObject {
             guard let transaction = try? checkVerified(entitlement) else { continue }
             if productIDs.contains(transaction.productID),
                transaction.revocationDate == nil,
+               !transaction.isUpgraded,
                transaction.expirationDate.map({ $0 > Date() }) ?? true {
                 return true
             }
@@ -930,12 +958,13 @@ final class CatchProStore: ObservableObject {
     }
 
     private func priceDecimal(for plan: CatchProPlan) -> Decimal {
-        // Keep the visible paywall aligned with the Singapore App Store listing.
-        // StoreKit can return sandbox storefront prices, but the app is sold in Singapore.
-        plan.fallbackPrice
+        product(for: plan)?.price ?? plan.fallbackPrice
     }
 
     private func currencyString(_ value: Decimal) -> String {
+        if let product = products.first {
+            return value.formatted(product.priceFormatStyle)
+        }
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.locale = Locale(identifier: "en_SG")
