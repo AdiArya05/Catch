@@ -82,9 +82,10 @@ struct BusArrivalCard: View {
                         .padding(.vertical, 3)
                         .background(.white.opacity(0.08), in: Capsule())
                         .accessibilityLabel("Bus \(service?.serviceNo ?? "unknown")")
-                    Text(attributes.stopShortName.uppercased())
+                    Text(attributes.stopName.uppercased())
                         .font(.system(size: 11, weight: .bold))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.65)
                         .foregroundStyle(.white.opacity(0.5))
                     Spacer(minLength: 4)
                     Text("CATCH")
@@ -230,6 +231,7 @@ private struct BusArrivalTrack: View {
         Group {
             if let arrival = state.arrivalDate, !isStale {
                 let start = min(state.progressStartedAt ?? state.updatedAt, arrival.addingTimeInterval(-1))
+                let finish = max(start.addingTimeInterval(1), arrival.addingTimeInterval(-120))
                 ZStack {
                     Capsule()
                         .fill(state.arrivalColor.opacity(0.18))
@@ -238,7 +240,7 @@ private struct BusArrivalTrack: View {
                     // Date-relative progress views are advanced by the system while
                     // the app is suspended. Apple doesn't support custom styles for
                     // this initializer, so keep the native linear style here.
-                    ProgressView(timerInterval: start...arrival, countsDown: false) {
+                    ProgressView(timerInterval: start...finish, countsDown: false) {
                         EmptyView()
                     } currentValueLabel: {
                         EmptyView()
@@ -349,7 +351,11 @@ extension CatchStopActivityAttributes.ContentState {
     func arrivalProgress(at date: Date) -> CGFloat {
         guard let arrivalDate else { return 0 }
         let start = progressStartedAt ?? updatedAt
-        let duration = arrivalDate.timeIntervalSince(start)
+        // The ETA shown as "1 minute" begins below two minutes because bus
+        // arrival minutes are intentionally floored. Complete the track at that
+        // threshold so the bar and marker are at the end throughout that state.
+        let finish = arrivalDate.addingTimeInterval(-120)
+        let duration = finish.timeIntervalSince(start)
         guard duration > 0 else { return 1 }
         return min(1, max(0, date.timeIntervalSince(start) / duration))
     }

@@ -890,8 +890,8 @@ extension Notification.Name {
     static let catchHomeSelected = Notification.Name("catch-home-tab-selected")
 }
 
-// UIKit owns the entire long-press movement so horizontal scrolling cannot cancel
-// a reorder halfway through. The datasource changes only on a committed move.
+// UIKit's native drag and drop supports both a touch hold on iPhone and a mouse
+// hold in Simulator while preserving the collection view's settle animation.
 private struct SavedStopStrip: UIViewRepresentable {
     let locations: [SavedLocation]
     let isDark: Bool
@@ -912,13 +912,9 @@ private struct SavedStopStrip: UIViewRepresentable {
         view.register(UICollectionViewCell.self, forCellWithReuseIdentifier: "stop")
         view.dataSource = context.coordinator
         view.delegate = context.coordinator
-        let reorderGesture = UILongPressGestureRecognizer(
-            target: context.coordinator,
-            action: #selector(Coordinator.handleReorderGesture(_:))
-        )
-        reorderGesture.minimumPressDuration = 0.18
-        reorderGesture.allowableMovement = 40
-        view.addGestureRecognizer(reorderGesture)
+        view.dragDelegate = context.coordinator
+        view.dropDelegate = context.coordinator
+        view.dragInteractionEnabled = true
         return view
     }
     func updateUIView(_ view: UICollectionView, context: Context) {
@@ -931,7 +927,7 @@ private struct SavedStopStrip: UIViewRepresentable {
         coordinator.items = locations
         view.reloadData()
     }
-    final class Coordinator: NSObject, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+    final class Coordinator: NSObject, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UICollectionViewDragDelegate, UICollectionViewDropDelegate {
         var parent: SavedStopStrip
         var items: [SavedLocation]
         var moving = false
@@ -982,33 +978,49 @@ private struct SavedStopStrip: UIViewRepresentable {
             commitMove(from: sourceIndexPath.item, to: destinationIndexPath.item)
         }
 
-        @objc func handleReorderGesture(_ gesture: UILongPressGestureRecognizer) {
-            guard let collectionView = gesture.view as? UICollectionView else { return }
-            let position = gesture.location(in: collectionView)
+        func collectionView(_ collectionView: UICollectionView, itemsForBeginning session: UIDragSession, at indexPath: IndexPath) -> [UIDragItem] {
+            guard items.count > 1, items.indices.contains(indexPath.item) else { return [] }
+            let item = items[indexPath.item]
+            let dragItem = UIDragItem(itemProvider: NSItemProvider(object: item.id as NSString))
+            dragItem.localObject = item.id
+            moving = true
+            Haptics.tap(.medium)
+            return [dragItem]
+        }
 
-            switch gesture.state {
-            case .began:
-                guard items.count > 1,
-                      let indexPath = collectionView.indexPathForItem(at: position),
-                      collectionView.beginInteractiveMovementForItem(at: indexPath) else { return }
-                moving = true
-                collectionView.isScrollEnabled = false
-                Haptics.tap(.medium)
-            case .changed:
-                guard moving else { return }
-                collectionView.updateInteractiveMovementTargetPosition(position)
-            case .ended:
-                guard moving else { return }
-                collectionView.endInteractiveMovement()
-                collectionView.isScrollEnabled = true
-                moving = false
-                Haptics.tap()
-            default:
-                guard moving else { return }
-                collectionView.cancelInteractiveMovement()
-                collectionView.isScrollEnabled = true
-                moving = false
+        func collectionView(_ collectionView: UICollectionView, dropSessionDidUpdate session: UIDropSession, withDestinationIndexPath destinationIndexPath: IndexPath?) -> UICollectionViewDropProposal {
+            UICollectionViewDropProposal(
+                operation: session.localDragSession == nil ? .cancel : .move,
+                intent: .insertAtDestinationIndexPath
+            )
+        }
+
+        func collectionView(_ collectionView: UICollectionView, performDropWith coordinator: UICollectionViewDropCoordinator) {
+            guard let destination = coordinator.destinationIndexPath,
+                  let dropItem = coordinator.items.first,
+                  let id = dropItem.dragItem.localObject as? String,
+                  let source = items.firstIndex(where: { $0.id == id }) else { return }
+            let target = min(destination.item, items.count - 1)
+            guard source != target else {
+                coordinator.drop(dropItem.dragItem, toItemAt: IndexPath(item: source, section: 0))
+                return
             }
+
+            let movedItem = items.remove(at: source)
+            items.insert(movedItem, at: target)
+            collectionView.performBatchUpdates {
+                collectionView.moveItem(
+                    at: IndexPath(item: source, section: 0),
+                    to: IndexPath(item: target, section: 0)
+                )
+            }
+            coordinator.drop(dropItem.dragItem, toItemAt: IndexPath(item: target, section: 0))
+            finishMove(from: source, to: target)
+            Haptics.tap()
+        }
+
+        func collectionView(_ collectionView: UICollectionView, dropSessionDidEnd session: UIDropSession) {
+            moving = false
         }
 
         private func commitMove(from: Int, to: Int) {

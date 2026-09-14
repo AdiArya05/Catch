@@ -120,7 +120,7 @@ final class LiveActivityManager {
         let words = cleaned.split(separator: " ").map(String.init)
         guard !words.isEmpty else { return name }
 
-        let visibleWords = words.prefix(3).joined(separator: " ")
-        return words.count > 3 ? "\(visibleWords)..." : visibleWords
+        let firstWord = words[0]
+        return words.count > 1 ? "\(firstWord)..." : firstWord
     }
 }
