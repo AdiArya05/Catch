@@ -26,6 +26,7 @@ struct CatchStopLiveActivity: Widget {
                         .frame(height: 28)
                         .background(.white.opacity(0.12), in: Capsule())
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.leading, 10)
                 }
                 DynamicIslandExpandedRegion(.center) {
                     Text(context.attributes.stopShortName.uppercased())
@@ -41,6 +42,7 @@ struct CatchStopLiveActivity: Widget {
                         .foregroundStyle(.white.opacity(0.55))
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .trailing)
+                        .padding(.trailing, 10)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     BusArrivalCard(attributes: context.attributes, state: context.state,
@@ -263,7 +265,10 @@ private struct BusArrivalTrack: View {
                     .frame(height: 13)
                     .clipShape(Capsule())
 
-                    TimelineView(.periodic(from: start, by: 1)) { timeline in
+                    // Begin the display schedule at the current render time. Using
+                    // the activity start here leaves WidgetKit on its first entry
+                    // after the system-managed ProgressView has already advanced.
+                    TimelineView(.periodic(from: .now, by: 1)) { timeline in
                         BusProgressMarker(progress: state.arrivalProgress(at: timeline.date))
                     }
                 }
