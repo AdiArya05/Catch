@@ -42,17 +42,16 @@ struct CatchStopLiveActivity: Widget {
                 }
             } compactLeading: {
                 Text(context.state.services.first?.serviceNo ?? "—")
-                    .font(.system(size: 14, weight: .black, design: .rounded))
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundStyle(context.state.arrivalColor)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(context.state.arrivalColor.opacity(0.16), in: Capsule())
+                    .minimumScaleFactor(0.75)
+                    .frame(width: 24, alignment: .leading)
             } compactTrailing: {
-                ArrivalCountdown(state: context.state, isStale: context.isStale)
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                CompactArrivalCountdown(state: context.state, isStale: context.isStale)
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .monospacedDigit()
+                    .frame(width: 34, alignment: .trailing)
             } minimal: {
                 Image(systemName: "bus.fill")
                     .foregroundStyle(context.state.arrivalColor)
@@ -229,6 +228,25 @@ private struct ArrivalCountdown: View {
     }
 }
 
+private struct CompactArrivalCountdown: View {
+    let state: CatchStopActivityAttributes.ContentState
+    var isStale = false
+
+    var body: some View {
+        Group {
+            if isStale {
+                Text("Update")
+            } else if let arrival = state.arrivalDate {
+                Text(arrival, style: .timer)
+            } else {
+                Text("—")
+            }
+        }
+        .foregroundStyle(state.arrivalColor)
+        .lineLimit(1)
+    }
+}
+
 private struct BusArrivalTrack: View {
     let state: CatchStopActivityAttributes.ContentState
     var isStale = false
@@ -379,3 +397,67 @@ extension CatchStopActivityAttributes {
         return components.url!
     }
 }
+
+#if DEBUG
+private extension CatchStopActivityAttributes {
+    static var preview: Self {
+        .init(
+            stopCode: "21699",
+            stopName: "Summerdale",
+            stopShortName: "Summerdale",
+            walkMinutes: 5,
+            roadName: "Boon Lay Way"
+        )
+    }
+}
+
+private extension CatchStopActivityAttributes.ContentState {
+    static var preview: Self {
+        let now = Date()
+        return .init(
+            services: [
+                .init(
+                    serviceNo: "30",
+                    arrivals: [8, 18, 27],
+                    busTypes: ["DD", "SD", "SD"],
+                    features: ["WAB", "WAB", "WAB"],
+                    arrivalDate: now.addingTimeInterval(8 * 60),
+                    load: "SEA"
+                )
+            ],
+            updatedAt: now,
+            progressStartedAt: now
+        )
+    }
+}
+
+#Preview(
+    "Dynamic Island Expanded",
+    as: .dynamicIsland(.expanded),
+    using: CatchStopActivityAttributes.preview
+) {
+    CatchStopLiveActivity()
+} contentStates: {
+    CatchStopActivityAttributes.ContentState.preview
+}
+
+#Preview(
+    "Dynamic Island Compact",
+    as: .dynamicIsland(.compact),
+    using: CatchStopActivityAttributes.preview
+) {
+    CatchStopLiveActivity()
+} contentStates: {
+    CatchStopActivityAttributes.ContentState.preview
+}
+
+#Preview(
+    "Lock Screen Live Activity",
+    as: .content,
+    using: CatchStopActivityAttributes.preview
+) {
+    CatchStopLiveActivity()
+} contentStates: {
+    CatchStopActivityAttributes.ContentState.preview
+}
+#endif
