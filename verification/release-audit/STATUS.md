@@ -19,3 +19,10 @@ Release readiness is NOT established. Earlier verification/README.md entries are
 - Review current legal URLs, privacy disclosures, release metadata, icons, and signing before upload.
 
 No App Store upload or submission performed.
+
+## Further audit findings and fixes
+- Production LiveActivityManager compiled against controllable ActivityKit doubles reproduced duplicate activities on overlapping starts. Added an operation revision so only the latest start can create, and Stop invalidates suspended starts. Both regression scenarios now pass.
+- Latest Debug simulator build passes; actual row selection started bus 131 at Farrer Pk Stn Exit A.
+- Lock Screen screenshots at 10:28 and 10:30 show current clock/countdown and native fill advance without reopening Catch. They also prove the bus marker stays behind: this remains a blocker, not a passed animation test.
+- Expanded screenshot is explicitly an Xcode fixture preview, not a physical-device or live-ETA test. Header and times fit, with no street name.
+- Removed seven orphan duplicate appiconset directories only after comparing every image byte-for-byte with its configured AlternateAppIcons copy. All configured icon artwork is retained.

@@ -7,12 +7,19 @@ final class LiveActivityManager {
 
     private init() {}
 
+    // MainActor methods can interleave while ActivityKit awaits dismissal.
+    // Only the newest start/stop operation may create a replacement activity.
+    private var operationRevision: UInt64 = 0
+
     var activeActivity: Activity<CatchStopActivityAttributes>? {
         Activity<CatchStopActivityAttributes>.activities.first
     }
 
     func startStopWatch(stopCode: String, stopName: String, walkMinutes: Int?, services: [BusService], roadName: String? = nil) async {
         guard !services.isEmpty, ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+
+        operationRevision &+= 1
+        let revision = operationRevision
 
         let attributes = CatchStopActivityAttributes(
             stopCode: stopCode,
@@ -29,7 +36,8 @@ final class LiveActivityManager {
             progressStartedAt: now
         )
 
-        await endAll()
+        await dismissExistingActivities()
+        guard revision == operationRevision, !Task.isCancelled else { return }
 
         do {
             _ = try Activity.request(
@@ -70,6 +78,11 @@ final class LiveActivityManager {
     }
 
     func endAll() async {
+        operationRevision &+= 1
+        await dismissExistingActivities()
+    }
+
+    private func dismissExistingActivities() async {
         for activity in Activity<CatchStopActivityAttributes>.activities {
             await activity.end(nil, dismissalPolicy: .immediate)
         }
