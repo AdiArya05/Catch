@@ -497,8 +497,14 @@ class AppState: ObservableObject {
             pinnedBuses = await widgetBuses(for: selectedLocation, limit: 4, preferPinned: true)
         }
 
-        let home = await widgetPlace(for: validLocations.first { $0.name.localizedCaseInsensitiveContains("home") }, label: "Home")
-        let work = await widgetPlace(for: validLocations.first { $0.name.localizedCaseInsensitiveContains("work") }, label: "Work")
+        var savedPlaces: [CatchWidgetPlace] = []
+        for location in validLocations {
+            if let place = await widgetPlace(for: location, label: location.name) {
+                savedPlaces.append(place)
+            }
+        }
+        let home = savedPlaces.first { $0.label.localizedCaseInsensitiveContains("home") }
+        let work = savedPlaces.first { $0.label.localizedCaseInsensitiveContains("work") }
 
         let snapshot = CatchWidgetSnapshot(
             stopCode: preferredStopCode ?? selectedLocation?.busStopCode,
@@ -507,7 +513,8 @@ class AppState: ObservableObject {
             pinnedBuses: pinnedBuses,
             home: home,
             work: work,
-            isProMember: isProMember
+            isProMember: isProMember,
+            savedPlaces: savedPlaces
         )
 
         CatchWidgetStore.save(snapshot)

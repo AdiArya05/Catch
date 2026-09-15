@@ -1,24 +1,81 @@
 import SwiftUI
 import WidgetKit
+import AppIntents
+
+struct CatchSavedStopEntity: AppEntity, Hashable {
+    static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Saved Bus Stop")
+    static let defaultQuery = CatchSavedStopQuery()
+
+    let id: String
+    let name: String
+    let label: String
+
+    var displayRepresentation: DisplayRepresentation {
+        DisplayRepresentation(title: "\(label)", subtitle: "\(name)", image: .init(systemName: "bus.fill"))
+    }
+}
+
+struct CatchSavedStopQuery: EntityQuery {
+    func entities(for identifiers: [CatchSavedStopEntity.ID]) async throws -> [CatchSavedStopEntity] {
+        availableStops().filter { identifiers.contains($0.id) }
+    }
+
+    func suggestedEntities() async throws -> [CatchSavedStopEntity] {
+        availableStops()
+    }
+
+    func defaultResult() async -> CatchSavedStopEntity? {
+        availableStops().first
+    }
+
+    private func availableStops() -> [CatchSavedStopEntity] {
+        let snapshot = CatchWidgetStore.load()
+        let places = snapshot.savedPlaces ?? [snapshot.home, snapshot.work].compactMap { $0 }
+        var seen = Set<String>()
+        return places.compactMap { place in
+            guard let stopCode = place.stopCode, seen.insert(stopCode).inserted else { return nil }
+            let label = place.label.trimmingCharacters(in: .whitespacesAndNewlines)
+            return CatchSavedStopEntity(
+                id: stopCode,
+                name: place.stopName,
+                label: label.isEmpty ? place.stopName : label
+            )
+        }
+    }
+}
+
+struct CatchWidgetConfigurationIntent: WidgetConfigurationIntent {
+    static let title: LocalizedStringResource = "Choose a Saved Stop"
+    static let description = IntentDescription("Select which of your saved bus stops appears in this widget.")
+
+    @Parameter(title: "Saved Stop")
+    var savedStop: CatchSavedStopEntity?
+}
 
 struct CatchWidgetEntry: TimelineEntry {
     let date: Date
     let snapshot: CatchWidgetSnapshot
 }
 
-struct CatchWidgetProvider: TimelineProvider {
+struct CatchWidgetProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> CatchWidgetEntry {
         CatchWidgetEntry(date: Date(), snapshot: .placeholder)
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (CatchWidgetEntry) -> Void) {
-        completion(CatchWidgetEntry(date: Date(), snapshot: CatchWidgetStore.load()))
+    func snapshot(for configuration: CatchWidgetConfigurationIntent, in context: Context) async -> CatchWidgetEntry {
+        CatchWidgetEntry(
+            date: Date(),
+            snapshot: CatchWidgetStore.snapshot(selecting: configuration.savedStop?.id)
+        )
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<CatchWidgetEntry>) -> Void) {
-        let entry = CatchWidgetEntry(date: Date(), snapshot: CatchWidgetStore.load())
+    func timeline(for configuration: CatchWidgetConfigurationIntent, in context: Context) async -> Timeline<CatchWidgetEntry> {
+        let entry = CatchWidgetEntry(
+            date: Date(),
+            snapshot: CatchWidgetStore.snapshot(selecting: configuration.savedStop?.id)
+        )
         let nextRefresh = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date().addingTimeInterval(900)
-        completion(Timeline(entries: [entry], policy: .after(nextRefresh)))
+        return Timeline(entries: [entry], policy: .after(nextRefresh))
     }
 }
 
@@ -26,7 +83,7 @@ struct CatchTransitWidget: Widget {
     let kind = "CatchTransitWidget"
 
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: CatchWidgetProvider()) { entry in
+        AppIntentConfiguration(kind: kind, intent: CatchWidgetConfigurationIntent.self, provider: CatchWidgetProvider()) { entry in
             CatchWidgetView(entry: entry)
                 .widgetURL(URL(string: "catch://home"))
         }

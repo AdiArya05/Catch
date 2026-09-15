@@ -8,6 +8,7 @@ struct CatchWidgetSnapshot: Codable {
     var home: CatchWidgetPlace?
     var work: CatchWidgetPlace?
     var isProMember: Bool?
+    var savedPlaces: [CatchWidgetPlace]? = nil
 
     var hasTransitData: Bool {
         stopCode != nil || !pinnedBuses.isEmpty || home != nil || work != nil
@@ -98,6 +99,19 @@ enum CatchWidgetStore {
             return empty
         }
         snapshot.isProMember = defaults.bool(forKey: proKey)
+        return snapshot
+    }
+
+    static func snapshot(selecting stopCode: String?) -> CatchWidgetSnapshot {
+        var snapshot = load()
+        guard let stopCode,
+              let place = snapshot.savedPlaces?.first(where: { $0.stopCode == stopCode }) else {
+            return snapshot
+        }
+
+        snapshot.stopCode = place.stopCode
+        snapshot.stopName = place.stopName
+        snapshot.pinnedBuses = place.buses
         return snapshot
     }
 
