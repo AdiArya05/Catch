@@ -13,8 +13,8 @@ Release readiness is NOT established. Earlier verification/README.md entries are
 - The final generic-device Release archive completed with Store validation and both embedded extensions validated after the Pro-gate changes.
 
 ## Release blockers / remaining verification
-- Activity.request uses pushType:nil. Fresh ETAs only fetch in active scene. APNs registration/worker is absent. Need server-only Apple APNs signing key, key ID and configured worker before background refresh can pass.
-- Native ProgressView advances from dates, but TimelineView bus marker remains stale when suspended. Current code does not satisfy synchronized movement.
+- Activity.request now requests a push token and registers it with the deployed Supabase worker. The worker still needs a server-only Apple APNs signing key, key ID and one-minute cron before background refresh can pass.
+- Native ProgressView advances from dates. The bus marker shares the same start/arrival calculation and moves on each content update, but suspended-app synchronization still requires the pending APNs worker secrets and timed proof.
 - Expanded Island and Lock Screen need fresh runtime screenshots and elapsed-time comparisons after resolving marker updates.
 - Direct finger/mouse drag cancellation and scrolling conflicts still need a final manual pass; the same reorder data path and persistence passed through the long-hold accessibility actions.
 - Navigation, maps clustering/search/sheets, feedback composer retry/error handling, StoreKit Release entitlements/purchases/restoration, profile persistence, notification controls, and accessibility remain to be stress-tested.
@@ -31,3 +31,5 @@ No App Store upload or submission performed.
 - Removed seven orphan duplicate appiconset directories only after comparing every image byte-for-byte with its configured AlternateAppIcons copy. All configured icon artwork is retained.
 - Added `-catch-free-testing` to Debug builds only so Release behavior is unaffected while the free tier can be exercised despite a sandbox entitlement. Saved-stop and notification paywall screenshots are stored beside this report.
 - Privacy disclosures already cover feedback, local saved data, notifications, StoreKit, location, LTA and Supabase. No license changed. Removed a stale hard-coded planned-price sentence from both Terms sources; the terms now defer to the price Apple displays at purchase confirmation.
+- Added ActivityKit push-token registration and enabled frequent Live Activity updates. A simulator Live Board registered one real token in the secured `live_activity_subscriptions` table. The Supabase migration and JWT-protected `live-activity-refresh` Edge Function are deployed, and a new signed Release archive contains the `aps-environment` entitlement.
+- Background delivery is not yet testable: Apple Developer signed the browser out, and no APNs `.p8` key or Push Services certificate exists on this Mac. The worker still needs its Apple key ID/private key plus its one-minute cron secret before suspended-app captures can pass.

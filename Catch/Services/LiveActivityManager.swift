@@ -10,6 +10,7 @@ final class LiveActivityManager {
     // MainActor methods can interleave while ActivityKit awaits dismissal.
     // Only the newest start/stop operation may create a replacement activity.
     private var operationRevision: UInt64 = 0
+    private var pushTokensByActivity: [String: String] = [:]
 
     var activeActivity: Activity<CatchStopActivityAttributes>? {
         Activity<CatchStopActivityAttributes>.activities.first
@@ -40,11 +41,12 @@ final class LiveActivityManager {
         guard revision == operationRevision, !Task.isCancelled else { return }
 
         do {
-            _ = try Activity.request(
+            let activity = try Activity.request(
                 attributes: attributes,
                 content: ActivityContent(state: state, staleDate: Self.staleDate(for: state)),
-                pushType: nil
+                pushType: .token
             )
+            observePushTokenUpdates(for: activity)
         } catch {
             #if DEBUG
             print("Live Activity start failed: \(error)")
@@ -75,6 +77,9 @@ final class LiveActivityManager {
             progressStartedAt: sameBus && !rolledOver ? min(previous.progressStartedAt ?? baseline, baseline) : baseline
         )
         await activeActivity.update(ActivityContent(state: state, staleDate: Self.staleDate(for: state)))
+        if let token = pushTokensByActivity[activeActivity.id] {
+            await registerRemoteRefresh(for: activeActivity, token: token)
+        }
     }
 
     func endAll() async {
@@ -84,8 +89,42 @@ final class LiveActivityManager {
 
     private func dismissExistingActivities() async {
         for activity in Activity<CatchStopActivityAttributes>.activities {
+            pushTokensByActivity[activity.id] = nil
+            await FeedbackService.shared.removeLiveActivity(activityID: activity.id)
             await activity.end(nil, dismissalPolicy: .immediate)
         }
+    }
+
+    private func observePushTokenUpdates(for activity: Activity<CatchStopActivityAttributes>) {
+        Task { [weak self] in
+            for await tokenData in activity.pushTokenUpdates {
+                guard !Task.isCancelled else { return }
+                let token = tokenData.map { String(format: "%02x", $0) }.joined()
+                guard let self else { return }
+                self.pushTokensByActivity[activity.id] = token
+                await self.registerRemoteRefresh(for: activity, token: token)
+            }
+        }
+    }
+
+    private func registerRemoteRefresh(
+        for activity: Activity<CatchStopActivityAttributes>,
+        token: String
+    ) async {
+        guard let service = activity.content.state.services.first else { return }
+        #if DEBUG
+        let environment = "sandbox"
+        #else
+        let environment = "production"
+        #endif
+        try? await FeedbackService.shared.registerLiveActivity(
+            activityID: activity.id,
+            pushToken: token,
+            stopCode: activity.attributes.stopCode,
+            serviceNo: service.serviceNo,
+            progressStartedAt: activity.content.state.progressStartedAt ?? activity.content.state.updatedAt,
+            environment: environment
+        )
     }
 
     private static func staleDate(for state: CatchStopActivityAttributes.ContentState) -> Date {

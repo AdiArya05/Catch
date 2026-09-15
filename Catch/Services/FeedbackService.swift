@@ -65,7 +65,7 @@ actor FeedbackService {
         expiry = Date().addingTimeInterval(session.expires_in - 60)
         return session.access_token
     }
-    private func request(_ path: String, method: String = "GET", body: [String: String]? = nil, bearer: String? = nil) async throws -> Data {
+    private func request(_ path: String, method: String = "GET", body: [String: Any]? = nil, bearer: String? = nil) async throws -> Data {
         guard let (base, key) = config,
               let url = URL(string: base.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/" + path) else { throw Failure.unavailable }
         var req = URLRequest(url: url); req.httpMethod = method; req.timeoutInterval = 20
@@ -90,5 +90,40 @@ actor FeedbackService {
         guard (10...4000).contains(trimmed.count) else { throw Failure.invalid }
         let bearer = try await authenticate()
         _ = try await request("rest/v1/rpc/submit_feedback", method: "POST", body: ["message": trimmed, "request_id": id.uuidString], bearer: bearer)
+    }
+
+    func registerLiveActivity(
+        activityID: String,
+        pushToken: String,
+        stopCode: String,
+        serviceNo: String,
+        progressStartedAt: Date,
+        environment: String
+    ) async throws {
+        let bearer = try await authenticate()
+        _ = try await request(
+            "functions/v1/live-activity-refresh",
+            method: "POST",
+            body: [
+                "action": "register",
+                "activity_id": activityID,
+                "push_token": pushToken,
+                "stop_code": stopCode,
+                "service_no": serviceNo,
+                "progress_started_at": ISO8601DateFormatter().string(from: progressStartedAt),
+                "environment": environment
+            ],
+            bearer: bearer
+        )
+    }
+
+    func removeLiveActivity(activityID: String) async {
+        guard let bearer = try? await authenticate() else { return }
+        _ = try? await request(
+            "functions/v1/live-activity-refresh",
+            method: "POST",
+            body: ["action": "remove", "activity_id": activityID],
+            bearer: bearer
+        )
     }
 }

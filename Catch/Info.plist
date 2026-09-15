@@ -89,6 +89,8 @@
 	</dict>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
+	<key>NSSupportsLiveActivitiesFrequentUpdates</key>
+	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Catch uses your location to show nearby bus stops and estimate walking time while you use the app.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>

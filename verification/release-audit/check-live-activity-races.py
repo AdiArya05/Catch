@@ -15,14 +15,22 @@ struct ActivityContent { let state: CatchStopActivityAttributes.ContentState; le
 struct BusInfo { var arrivalMinutes: Int? = 4; var arrivalDate: Date? = Date().addingTimeInterval(240); var BusType: String?; var Feature: String?; var Load: String? }
 struct BusService { let ServiceNo: String; var NextBus = BusInfo(); var NextBus2 = BusInfo(); var NextBus3 = BusInfo() }
 enum Dismissal { case immediate }
+enum PushType { case token }
+actor FeedbackService {
+ static let shared = FeedbackService()
+ func removeLiveActivity(activityID: String) async {}
+ func registerLiveActivity(activityID: String, pushToken: String, stopCode: String, serviceNo: String, progressStartedAt: Date, environment: String) async throws {}
+}
 @MainActor final class FakeActivity {
  static var activities: [FakeActivity] = []
  static var requests = 0
  static var waits: [CheckedContinuation<Void, Never>] = []
+ let id = UUID().uuidString
  let attributes: CatchStopActivityAttributes
  var content: ActivityContent
+ var pushTokenUpdates: AsyncStream<Data> { AsyncStream { $0.finish() } }
  init(_ attributes: CatchStopActivityAttributes, _ content: ActivityContent) { self.attributes = attributes; self.content = content }
- static func request(attributes: CatchStopActivityAttributes, content: ActivityContent, pushType: String?) throws -> FakeActivity {
+ static func request(attributes: CatchStopActivityAttributes, content: ActivityContent, pushType: PushType?) throws -> FakeActivity {
   requests += 1
   let activity = FakeActivity(attributes, content); activities.append(activity); return activity
  }
