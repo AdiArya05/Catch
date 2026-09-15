@@ -88,6 +88,10 @@ struct BusStopDetailView: View {
         }
         .onDisappear {
             timer?.invalidate()
+            if draggedPinnedServiceNo != nil {
+                appState.persistPinnedBusServiceOrder(for: busStopCode)
+                draggedPinnedServiceNo = nil
+            }
         }
         .alert("Live Board couldn’t start", isPresented: $showLiveBoardError) {
             Button("OK", role: .cancel) {}
@@ -344,6 +348,12 @@ struct BusStopDetailView: View {
         return Group {
             if isPinned {
                 card
+                    .accessibilityAction(named: "Move bus earlier") {
+                        movePinnedService(service.ServiceNo, by: -1)
+                    }
+                    .accessibilityAction(named: "Move bus later") {
+                        movePinnedService(service.ServiceNo, by: 1)
+                    }
                     .onDrag {
                         Haptics.tap(.medium)
                         draggedPinnedServiceNo = service.ServiceNo
@@ -379,6 +389,21 @@ struct BusStopDetailView: View {
                 card
             }
         }
+    }
+
+    private func movePinnedService(_ serviceNo: String, by offset: Int) {
+        let order = appState.pinnedBusServiceOrder(for: busStopCode)
+        guard let index = order.firstIndex(of: serviceNo),
+              order.indices.contains(index + offset) else { return }
+        withAnimation(reduceMotion ? nil : .smooth(duration: 0.18)) {
+            appState.previewPinnedBusServiceMove(
+                stopCode: busStopCode,
+                serviceNo: serviceNo,
+                over: order[index + offset]
+            )
+        }
+        appState.persistPinnedBusServiceOrder(for: busStopCode)
+        Haptics.tap(.medium)
     }
 
     private var pinnedChip: some View {

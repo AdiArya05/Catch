@@ -233,7 +233,7 @@ struct ContentView: View {
                 appState.updateNearbyStops()
                 Task { await appState.refreshActiveLiveBoardIfNeeded() }
             }
-            headerButton("plus", label: "Add saved stop") { locationEditorSheet = .add }
+            headerButton("plus", label: "Add saved stop") { openAddSavedPlace() }
             headerButton("person.crop.circle.fill", label: "Profile") { showProfile = true }
         }
         .foregroundStyle(.primary)
@@ -284,6 +284,9 @@ struct ContentView: View {
                     selectedBusStopCode = loc.busStopCode
                     selectedBusStopName = loc.busStopDescription.isEmpty ? loc.name : loc.busStopDescription
                 }
+            }, onEdit: { loc in
+                Haptics.tap(.medium)
+                locationEditorSheet = .edit(loc.id)
             }, onMove: { from, to in
                 appState.moveSavedLocations(fromOffsets: IndexSet(integer: from), toOffset: to > from ? to + 1 : to)
             })
@@ -896,6 +899,7 @@ private struct SavedStopStrip: UIViewRepresentable {
     let locations: [SavedLocation]
     let isDark: Bool
     let onSelect: (SavedLocation) -> Void
+    let onEdit: (SavedLocation) -> Void
     let onMove: (Int, Int) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -949,9 +953,14 @@ private struct SavedStopStrip: UIViewRepresentable {
             }.margins(.all, 0)
             cell.isAccessibilityElement = true
             cell.accessibilityLabel = item.name
-            cell.accessibilityHint = "Hold and drag to reorder. Double tap to open stop."
+            cell.accessibilityHint = "Hold for edit options, or hold and drag to reorder. Double tap to open stop."
             cell.accessibilityTraits = .button
-            cell.accessibilityCustomActions = [-1, 1].map { direction in
+            let editAction = UIAccessibilityCustomAction(name: "Edit Saved Stop") { [weak self] _ in
+                Haptics.tap(.medium)
+                self?.parent.onEdit(item)
+                return true
+            }
+            let moveActions = [-1, 1].map { direction in
                 UIAccessibilityCustomAction(name: direction < 0 ? "Move earlier" : "Move later") { [weak self, weak collectionView] _ in
                     guard let self, let collectionView,
                           let from = self.items.firstIndex(where: { $0.id == item.id }),
@@ -962,6 +971,7 @@ private struct SavedStopStrip: UIViewRepresentable {
                     return true
                 }
             }
+            cell.accessibilityCustomActions = [editAction] + moveActions
             return cell
         }
         func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
@@ -972,6 +982,23 @@ private struct SavedStopStrip: UIViewRepresentable {
             guard !moving else { return }
             Haptics.tap()
             parent.onSelect(items[indexPath.item])
+        }
+
+        func collectionView(
+            _ collectionView: UICollectionView,
+            contextMenuConfigurationForItemAt indexPath: IndexPath,
+            point: CGPoint
+        ) -> UIContextMenuConfiguration? {
+            guard items.indices.contains(indexPath.item) else { return nil }
+            let item = items[indexPath.item]
+            return UIContextMenuConfiguration(identifier: item.id as NSString, previewProvider: nil) { [weak self] _ in
+                guard let self else { return nil }
+                let edit = UIAction(title: "Edit Saved Stop", image: UIImage(systemName: "pencil")) { [weak self] _ in
+                    Haptics.tap(.medium)
+                    self?.parent.onEdit(item)
+                }
+                return UIMenu(children: [edit])
+            }
         }
         func collectionView(_ collectionView: UICollectionView, canMoveItemAt indexPath: IndexPath) -> Bool { items.count > 1 }
         func collectionView(_ collectionView: UICollectionView, moveItemAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {

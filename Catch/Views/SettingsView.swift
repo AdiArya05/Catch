@@ -133,10 +133,16 @@ struct SettingsView: View {
                     dotLine
 
                     // Notifications
-                    row(icon: "bell.fill", iconColor: Color(hex: "FF453A"), label: "Notifications") {
+                    row(icon: "bell.fill", iconColor: Color(hex: "FF453A"), label: "Notifications", isPro: true) {
                         Toggle("", isOn: Binding(
-                            get: { appState.areNotificationsEnabled },
-                            set: { appState.saveNotificationsEnabled($0) }
+                            get: { appState.isProMember && appState.areNotificationsEnabled },
+                            set: { newValue in
+                                guard appState.isProMember else {
+                                    presentSettingsProPaywall(context: "Notifications")
+                                    return
+                                }
+                                appState.saveNotificationsEnabled(newValue)
+                            }
                         ))
                             .labelsHidden()
                             .tint(Color(hex: "34C759"))

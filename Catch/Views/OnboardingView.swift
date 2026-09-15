@@ -507,6 +507,10 @@ struct OnboardingView: View {
 
             Button(action: {
                 Haptics.tap(.medium)
+                guard appState.isProMember else {
+                    appState.presentProPaywall(context: "Notifications")
+                    return
+                }
                 appState.requestNotificationPermission { granted in
                     DispatchQueue.main.async {
                         appState.saveNotificationPermissionResult(granted)
@@ -517,7 +521,7 @@ struct OnboardingView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "bell.fill")
                         .font(.system(size: 14, weight: .bold))
-                    Text("Allow notifications")
+                    Text(appState.isProMember ? "Allow notifications" : "Unlock with Pro")
                         .font(.system(size: 16, weight: .bold))
                         .tracking(16 * -0.025)
                 }

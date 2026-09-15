@@ -72,7 +72,7 @@ class AppState: ObservableObject {
     @Published private var pinnedBusServicesByStop: [String: [String]] = [:]
 
     let locationManager = LocationManager()
-    let freeSavedPlaceLimit = 3
+    let freeSavedPlaceLimit = 1
     private let forceOnboardingForPolishRun = false
     private let modelContainer: ModelContainer
     private let modelContext: ModelContext
@@ -669,6 +669,10 @@ class AppState: ObservableObject {
     }
 
     func saveNotificationsEnabled(_ value: Bool) {
+        guard isProMember || value == false else {
+            presentProPaywall(context: "Notifications")
+            return
+        }
         if value {
             requestNotificationPermission { [weak self] granted in
                 Task { @MainActor in
@@ -683,9 +687,10 @@ class AppState: ObservableObject {
     }
 
     func saveNotificationPermissionResult(_ granted: Bool) {
-        areNotificationsEnabled = granted
+        let enabled = granted && isProMember
+        areNotificationsEnabled = enabled
         persistAppSettings()
-        UserDefaults.standard.set(granted, forKey: DefaultsKey.notificationsEnabled)
+        UserDefaults.standard.set(enabled, forKey: DefaultsKey.notificationsEnabled)
     }
 
     func refreshNotificationSetting() {
@@ -706,6 +711,11 @@ class AppState: ObservableObject {
     func loadProState() {
         let cachedMembership = UserDefaults.standard.bool(forKey: DefaultsKey.isProMember)
         #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-catch-free-testing") {
+            isProMember = false
+            CatchWidgetStore.saveProMembership(false)
+            return
+        }
         if debugProUnlocked {
             isProMember = true
             CatchWidgetStore.saveProMembership(true)
@@ -722,7 +732,9 @@ class AppState: ObservableObject {
     func setProMembership(_ storeValue: Bool) {
         storeHasProEntitlement = storeValue
         #if DEBUG
-        let value = storeValue || debugProUnlocked
+        let value = ProcessInfo.processInfo.arguments.contains("-catch-free-testing")
+            ? false
+            : storeValue || debugProUnlocked
         #else
         let value = storeValue
         #endif
@@ -733,6 +745,11 @@ class AppState: ObservableObject {
         } else {
             isLeaveNowAlertsEnabled = false
             isSmartSuggestionsEnabled = false
+            if areNotificationsEnabled {
+                areNotificationsEnabled = false
+                UserDefaults.standard.set(false, forKey: DefaultsKey.notificationsEnabled)
+                UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+            }
         }
         persistAppSettings()
         UserDefaults.standard.set(value, forKey: DefaultsKey.isProMember)

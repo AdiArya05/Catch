@@ -8,12 +8,15 @@ Release readiness is NOT established. Earlier verification/README.md entries are
 - Receipt harness passed remote-start, inaccurate/stale location, arrival/departure, and duplicate completion cases. The two detection method bodies were compared against current AppState source and match (whitespace ignored). Persistent-log deduplication remains separate coverage.
 - Configured Supabase endpoint is reachable; anonymous auth enabled.
 - Live backend test: two anonymous sessions; one clearly labelled unpublished report (fc2efb18-c5d2-4b04-96b3-771cf376440d). Successful submission and idempotent retry; author sees one received report; second author sees none; client status mutation, author-ID read, short submission, and unauthenticated submission rejected. No real user reports altered.
+- Free access gates: the limit is one saved stop, every add path enforces it, and the simulator shows the Pro screen immediately from the header Add action. Existing extra stops are preserved rather than deleted. Notifications are labelled Pro in Settings; the free-user toggle and onboarding action open the Pro screen without requesting notification permission.
+- Saved-stop edit and reorder: each saved stop exposes Edit, Move Earlier and Move Later from its long-hold/accessibility menu. Reordered stops persisted after terminating and relaunching the simulator app. Pinned buses expose matching move actions and their order also persisted after relaunch.
+- The final generic-device Release archive completed with Store validation and both embedded extensions validated after the Pro-gate changes.
 
 ## Release blockers / remaining verification
 - Activity.request uses pushType:nil. Fresh ETAs only fetch in active scene. APNs registration/worker is absent. Need server-only Apple APNs signing key, key ID and configured worker before background refresh can pass.
 - Native ProgressView advances from dates, but TimelineView bus marker remains stale when suspended. Current code does not satisfy synchronized movement.
 - Expanded Island and Lock Screen need fresh runtime screenshots and elapsed-time comparisons after resolving marker updates.
-- Pin/stop long-hold reorder: actual gesture, cancellation, persistence and scrolling conflicts need runtime verification.
+- Direct finger/mouse drag cancellation and scrolling conflicts still need a final manual pass; the same reorder data path and persistence passed through the long-hold accessibility actions.
 - Navigation, maps clustering/search/sheets, feedback composer retry/error handling, StoreKit Release entitlements/purchases/restoration, profile persistence, notification controls, and accessibility remain to be stress-tested.
 - Feedback publication visibility and hourly rate-limit concurrency not yet tested against deployed backend.
 - Review current legal URLs, privacy disclosures, release metadata, icons, and signing before upload.
@@ -26,3 +29,5 @@ No App Store upload or submission performed.
 - Lock Screen screenshots at 10:28 and 10:30 show current clock/countdown and native fill advance without reopening Catch. They also prove the bus marker stays behind: this remains a blocker, not a passed animation test.
 - Expanded screenshot is explicitly an Xcode fixture preview, not a physical-device or live-ETA test. Header and times fit, with no street name.
 - Removed seven orphan duplicate appiconset directories only after comparing every image byte-for-byte with its configured AlternateAppIcons copy. All configured icon artwork is retained.
+- Added `-catch-free-testing` to Debug builds only so Release behavior is unaffected while the free tier can be exercised despite a sandbox entitlement. Saved-stop and notification paywall screenshots are stored beside this report.
+- Privacy disclosures already cover feedback, local saved data, notifications, StoreKit, location, LTA and Supabase. No license changed. Removed a stale hard-coded planned-price sentence from both Terms sources; the terms now defer to the price Apple displays at purchase confirmation.
