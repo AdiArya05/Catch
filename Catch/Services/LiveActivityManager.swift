@@ -88,10 +88,21 @@ final class LiveActivityManager {
     }
 
     private func dismissExistingActivities() async {
-        for activity in Activity<CatchStopActivityAttributes>.activities {
+        let activities = Activity<CatchStopActivityAttributes>.activities
+        let activityIDs = activities.map(\.id)
+
+        // End the system UI first so the Live Board button responds immediately.
+        // Remote registration cleanup is independent and must never hold up the
+        // user's start/stop animation on a slow connection.
+        for activity in activities {
             pushTokensByActivity[activity.id] = nil
-            await FeedbackService.shared.removeLiveActivity(activityID: activity.id)
             await activity.end(nil, dismissalPolicy: .immediate)
+        }
+
+        Task {
+            for activityID in activityIDs {
+                await FeedbackService.shared.removeLiveActivity(activityID: activityID)
+            }
         }
     }
 

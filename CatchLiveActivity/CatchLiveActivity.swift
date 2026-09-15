@@ -41,10 +41,11 @@ struct CatchStopLiveActivity: Widget {
                                    isStale: context.isStale, showsFooter: false, showsHeader: false)
                 }
             } compactLeading: {
-                Image(systemName: "bus.fill")
-                    .font(.system(size: 14, weight: .semibold))
+                Text(context.state.services.first?.serviceNo ?? "—")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
                     .foregroundStyle(context.state.arrivalColor)
-                    .frame(width: 20)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .accessibilityLabel("Bus \(context.state.services.first?.serviceNo ?? "")")
             } compactTrailing: {
                 CompactArrivalCountdown(state: context.state, isStale: context.isStale)
@@ -52,7 +53,8 @@ struct CatchStopLiveActivity: Widget {
                     .monospacedDigit()
                     .frame(width: 42, alignment: .trailing)
             } minimal: {
-                Image(systemName: "bus.fill")
+                Text(context.state.services.first?.serviceNo ?? "—")
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
                     .foregroundStyle(context.state.arrivalColor)
             }
             .contentMargins(.horizontal, 12, for: .expanded)
@@ -302,9 +304,8 @@ private struct BusProgressMarker: View {
             let travel = max(0, geometry.size.width - markerSize)
             let markerX = travel * fraction
 
-            Image(systemName: "bus.fill")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(.black)
+            Circle()
+                .fill(.white)
                 .frame(width: markerSize, height: markerSize)
                 .background(.white, in: Circle())
                 .overlay(Circle().stroke(.black, lineWidth: 3))
@@ -333,8 +334,8 @@ private struct ArrivalProgressDrawing: View, Animatable {
                 Capsule().fill(color.opacity(0.18)).frame(height: 13)
                 Capsule().fill(color)
                     .frame(width: markerX, height: 13)
-                Image(systemName: "bus.fill")
-                    .font(.system(size: 11, weight: .bold)).foregroundStyle(.black)
+                Circle()
+                    .fill(.white)
                     .frame(width: radius * 2, height: radius * 2)
                     .background(.white, in: Circle())
                     .overlay(Circle().stroke(.black, lineWidth: 3))

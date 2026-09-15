@@ -52,6 +52,122 @@ struct CatchWidgetConfigurationIntent: WidgetConfigurationIntent {
     var savedStop: CatchSavedStopEntity?
 }
 
+struct CatchWidgetRefreshIntent: AppIntent {
+    static let title: LocalizedStringResource = "Refresh Bus Arrivals"
+    static let description = IntentDescription("Refresh this widget without opening Catch.")
+    static let openAppWhenRun = false
+
+    @Parameter(title: "Bus Stop Code")
+    var stopCode: String
+
+    init() {
+        stopCode = ""
+    }
+
+    init(stopCode: String) {
+        self.stopCode = stopCode
+    }
+
+    func perform() async throws -> some IntentResult {
+        guard !stopCode.isEmpty else { return .result() }
+
+        var requestComponents = URLComponents(string: "https://datamall2.mytransport.sg/ltaodataservice/v3/BusArrival")!
+        requestComponents.queryItems = [URLQueryItem(name: "BusStopCode", value: stopCode)]
+        guard let url = requestComponents.url else { return .result() }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 12
+        request.setValue("8SlaHtOZRzyfeVqOOJPgaQ==", forHTTPHeaderField: "AccountKey")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            return .result()
+        }
+
+        let arrivals = try JSONDecoder().decode(WidgetArrivalResponse.self, from: data)
+        var snapshot = CatchWidgetStore.load()
+        guard snapshot.isProMember == true else { return .result() }
+
+        let existingPlace = snapshot.savedPlaces?.first(where: { $0.stopCode == stopCode })
+        let walkMinutes = existingPlace?.walkMinutes ?? 5
+        let existingOrder = existingPlace?.buses.map(\.serviceNo) ?? []
+        let order = Dictionary(uniqueKeysWithValues: existingOrder.enumerated().map { ($1, $0) })
+        let sortedServices = arrivals.Services.sorted { lhs, rhs in
+            let left = order[lhs.ServiceNo]
+            let right = order[rhs.ServiceNo]
+            switch (left, right) {
+            case let (.some(leftIndex), .some(rightIndex)) where leftIndex != rightIndex:
+                return leftIndex < rightIndex
+            case (.some, .none):
+                return true
+            case (.none, .some):
+                return false
+            default:
+                break
+            }
+            return lhs.ServiceNo.localizedStandardCompare(rhs.ServiceNo) == .orderedAscending
+        }
+        let buses = sortedServices.prefix(4).map { $0.widgetBus(walkMinutes: walkMinutes) }
+
+        snapshot.updatedAt = Date()
+        if snapshot.stopCode == stopCode {
+            snapshot.pinnedBuses = buses
+        }
+        if snapshot.home?.stopCode == stopCode {
+            snapshot.home?.buses = buses
+            snapshot.home?.updatedAt = snapshot.updatedAt
+        }
+        if snapshot.work?.stopCode == stopCode {
+            snapshot.work?.buses = buses
+            snapshot.work?.updatedAt = snapshot.updatedAt
+        }
+        if let index = snapshot.savedPlaces?.firstIndex(where: { $0.stopCode == stopCode }) {
+            snapshot.savedPlaces?[index].buses = buses
+            snapshot.savedPlaces?[index].updatedAt = snapshot.updatedAt
+        }
+
+        CatchWidgetStore.save(snapshot)
+        WidgetCenter.shared.reloadTimelines(ofKind: "CatchTransitWidget")
+        return .result()
+    }
+}
+
+private struct WidgetArrivalResponse: Decodable {
+    let Services: [WidgetArrivalService]
+}
+
+private struct WidgetArrivalService: Decodable {
+    let ServiceNo: String
+    let NextBus: WidgetArrivalBus
+    let NextBus2: WidgetArrivalBus
+    let NextBus3: WidgetArrivalBus
+
+    func widgetBus(walkMinutes: Int) -> CatchWidgetBus {
+        let arrivals = [NextBus.minutes, NextBus2.minutes, NextBus3.minutes]
+        let catchability: CatchWidgetCatchability
+        if let first = arrivals[0] {
+            let leaveIn = first - walkMinutes
+            catchability = leaveIn > 5 ? .easy : leaveIn >= 0 ? .leaveNow : .tooTight
+        } else {
+            catchability = .unknown
+        }
+        return CatchWidgetBus(serviceNo: ServiceNo, arrivals: arrivals, catchability: catchability)
+    }
+}
+
+private struct WidgetArrivalBus: Decodable {
+    let EstimatedArrival: String?
+
+    var minutes: Int? {
+        guard let raw = EstimatedArrival, !raw.isEmpty else { return nil }
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let standard = ISO8601DateFormatter()
+        standard.formatOptions = [.withInternetDateTime]
+        guard let date = fractional.date(from: raw) ?? standard.date(from: raw) else { return nil }
+        return max(0, Int(date.timeIntervalSinceNow / 60))
+    }
+}
+
 struct CatchWidgetEntry: TimelineEntry {
     let date: Date
     let snapshot: CatchWidgetSnapshot
@@ -274,10 +390,11 @@ private struct SmallBusWidget: View {
 
                 Spacer(minLength: 4)
 
-                if let refreshURL = refreshURL(stopCode: snapshot.stopCode, stopName: snapshot.stopName) {
-                    Link(destination: refreshURL) {
+                if let stopCode = snapshot.stopCode {
+                    Button(intent: CatchWidgetRefreshIntent(stopCode: stopCode)) {
                         SymbolButton(systemName: "arrow.clockwise", color: CatchWidgetStyle.blue, size: 34, iconSize: 16)
                     }
+                    .buttonStyle(.plain)
                 }
             }
 
@@ -334,10 +451,11 @@ private struct MediumBusWidget: View {
                 }
                 .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
 
-                if let refreshURL = refreshURL(stopCode: snapshot.stopCode, stopName: snapshot.stopName) {
-                    Link(destination: refreshURL) {
+                if let stopCode = snapshot.stopCode {
+                    Button(intent: CatchWidgetRefreshIntent(stopCode: stopCode)) {
                         SymbolButton(systemName: "arrow.clockwise", color: CatchWidgetStyle.blue, size: 30, iconSize: 15)
                     }
+                    .buttonStyle(.plain)
                 }
             }
 
@@ -404,11 +522,12 @@ private struct LargeBusWidget: View {
 
                 Spacer(minLength: 8)
 
-                if let refreshURL = refreshURL(stopCode: snapshot.stopCode ?? place.stopCode, stopName: displayStopName) {
-                    Link(destination: refreshURL) {
+                if let stopCode = snapshot.stopCode ?? place.stopCode {
+                    Button(intent: CatchWidgetRefreshIntent(stopCode: stopCode)) {
                         SymbolButton(systemName: "arrow.clockwise", color: CatchWidgetStyle.blue)
                             .padding(.top, 4)
                     }
+                    .buttonStyle(.plain)
                 }
             }
 
@@ -884,17 +1003,6 @@ private func stopURL(stopCode: String?, stopName: String) -> URL? {
     var components = URLComponents()
     components.scheme = "catch"
     components.host = "stop"
-    components.queryItems = [
-        URLQueryItem(name: "stopCode", value: stopCode),
-        URLQueryItem(name: "stopName", value: stopName)
-    ].filter { $0.value != nil }
-    return components.url
-}
-
-private func refreshURL(stopCode: String?, stopName: String) -> URL? {
-    var components = URLComponents()
-    components.scheme = "catch"
-    components.host = "refresh"
     components.queryItems = [
         URLQueryItem(name: "stopCode", value: stopCode),
         URLQueryItem(name: "stopName", value: stopName)

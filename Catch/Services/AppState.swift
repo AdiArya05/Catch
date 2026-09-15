@@ -536,7 +536,14 @@ class AppState: ObservableObject {
     private func widgetPlace(for location: SavedLocation?, label: String) async -> CatchWidgetPlace? {
         guard let location else { return nil }
         let buses = await widgetBuses(for: location, limit: 4, preferPinned: false)
-        return CatchWidgetPlace(label: label, stopCode: location.busStopCode, stopName: location.busStopDescription, buses: buses)
+        return CatchWidgetPlace(
+            label: label,
+            stopCode: location.busStopCode,
+            stopName: location.busStopDescription,
+            buses: buses,
+            walkMinutes: location.walkMinutes,
+            updatedAt: Date()
+        )
     }
 
     private func widgetBuses(for location: SavedLocation, limit: Int, preferPinned: Bool) async -> [CatchWidgetBus] {

@@ -51,6 +51,10 @@ struct ContentView: View {
         ZStack {
             (colorScheme == .dark ? Color(hex: "292929") : Color(hex: "F5F5F5")).ignoresSafeArea()
 
+            mainContent
+                .allowsHitTesting(selectedBusStopCode == nil)
+                .accessibilityHidden(selectedBusStopCode != nil)
+
             if let code = selectedBusStopCode, let name = selectedBusStopName {
                 BusStopDetailView(
                     busStopCode: code,
@@ -63,9 +67,6 @@ struct ContentView: View {
                     }
                 )
                 .transition(.move(edge: .trailing).combined(with: .opacity))
-            } else {
-                mainContent
-                    .transition(.move(edge: .leading).combined(with: .opacity))
             }
 
         }

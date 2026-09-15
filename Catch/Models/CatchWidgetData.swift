@@ -65,6 +65,8 @@ struct CatchWidgetPlace: Codable {
     var stopCode: String?
     var stopName: String
     var buses: [CatchWidgetBus]
+    var walkMinutes: Int? = nil
+    var updatedAt: Date? = nil
 }
 
 struct CatchWidgetBus: Codable, Identifiable {
@@ -112,6 +114,7 @@ enum CatchWidgetStore {
         snapshot.stopCode = place.stopCode
         snapshot.stopName = place.stopName
         snapshot.pinnedBuses = place.buses
+        snapshot.updatedAt = place.updatedAt ?? snapshot.updatedAt
         return snapshot
     }
 
