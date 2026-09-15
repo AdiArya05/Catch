@@ -285,6 +285,10 @@ class AppState: ObservableObject {
         Set(pinnedBusServicesByStop[stopCode] ?? [])
     }
 
+    func pinnedBusServiceOrder(for stopCode: String) -> [String] {
+        pinnedBusServicesByStop[stopCode] ?? []
+    }
+
     var catchabilitySavedLocations: [SavedLocation] {
         var seen = Set<String>()
         return savedLocations.filter {
@@ -314,6 +318,30 @@ class AppState: ObservableObject {
             pinnedBusServicesByStop[stopCode] = pinned
         }
 
+        savePinnedBusServices()
+        Task {
+            await refreshWidgetSnapshot(preferredStopCode: stopCode)
+            await refreshActiveLiveBoardIfNeeded(for: stopCode)
+        }
+        if isCatchItEnabled {
+            refreshCatchability()
+        }
+    }
+
+    func previewPinnedBusServiceMove(stopCode: String, serviceNo: String, over targetServiceNo: String) {
+        guard serviceNo != targetServiceNo,
+              var pinned = pinnedBusServicesByStop[stopCode],
+              let sourceIndex = pinned.firstIndex(of: serviceNo),
+              let targetIndex = pinned.firstIndex(of: targetServiceNo) else { return }
+
+        pinned.move(
+            fromOffsets: IndexSet(integer: sourceIndex),
+            toOffset: targetIndex > sourceIndex ? targetIndex + 1 : targetIndex
+        )
+        pinnedBusServicesByStop[stopCode] = pinned
+    }
+
+    func persistPinnedBusServiceOrder(for stopCode: String) {
         savePinnedBusServices()
         Task {
             await refreshWidgetSnapshot(preferredStopCode: stopCode)
@@ -398,9 +426,12 @@ class AppState: ObservableObject {
         }
         for (stopCode, services) in pinnedBusServicesByStop {
             for (index, serviceNo) in services.enumerated() {
-                if !stored.contains(where: { $0.stopCode == stopCode && $0.serviceNo == serviceNo }) {
+                let pinnedAt = Date(timeIntervalSinceReferenceDate: Double(index))
+                if let row = stored.first(where: { $0.stopCode == stopCode && $0.serviceNo == serviceNo }) {
+                    row.pinnedAt = pinnedAt
+                } else {
                     let row = StoredPinnedBusService(stopCode: stopCode, serviceNo: serviceNo)
-                    row.pinnedAt = Date().addingTimeInterval(Double(index) * 0.001)
+                    row.pinnedAt = pinnedAt
                     modelContext.insert(row)
                 }
             }

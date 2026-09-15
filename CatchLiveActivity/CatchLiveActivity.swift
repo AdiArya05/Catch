@@ -18,31 +18,23 @@ struct CatchStopLiveActivity: Widget {
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     Text(context.state.services.first?.serviceNo ?? "—")
-                        .font(.system(size: 17, weight: .black, design: .rounded))
+                        .font(.system(size: 16, weight: .black, design: .rounded))
                         .foregroundStyle(.white)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
-                        .padding(.horizontal, 10)
-                        .frame(height: 28)
+                        .padding(.horizontal, 8)
+                        .frame(minWidth: 28, minHeight: 26)
                         .background(.white.opacity(0.12), in: Capsule())
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.leading, 10)
-                }
-                DynamicIslandExpandedRegion(.center) {
-                    Text(context.attributes.stopShortName.uppercased())
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.68))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.leading, 16)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     Text("CATCH")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(.white.opacity(0.55))
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.trailing, 10)
+                        .padding(.trailing, 16)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     BusArrivalCard(attributes: context.attributes, state: context.state,

@@ -17,6 +17,7 @@ struct BusStopDetailView: View {
     @State private var isWatchingLiveActivity = false
     @State private var isUpdatingLiveActivity = false
     @State private var showLiveBoardError = false
+    @State private var draggedPinnedServiceNo: String?
     @GestureState private var swipeBackTranslation: CGFloat = 0
 
     private var bgColor: Color { colorScheme == .dark ? Color(hex: "292929") : Color(hex: "F5F5F5") }
@@ -61,6 +62,10 @@ struct BusStopDetailView: View {
                     ForEach(displayServices) { service in
                         busServiceCard(service)
                     }
+                    .animation(
+                        reduceMotion ? nil : .smooth(duration: 0.22),
+                        value: appState.pinnedBusServiceOrder(for: busStopCode)
+                    )
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
@@ -267,8 +272,7 @@ struct BusStopDetailView: View {
     private func busServiceCard(_ service: BusService) -> some View {
         let isPinned = appState.isBusServicePinned(stopCode: busStopCode, serviceNo: service.ServiceNo)
 
-        return Group {
-            VStack(spacing: 14) {
+        let card = VStack(spacing: 14) {
                 HStack(alignment: .center, spacing: 10) {
                     Text(service.ServiceNo)
                         .font(.system(size: 34, weight: .bold))
@@ -335,12 +339,44 @@ struct BusStopDetailView: View {
                     .stroke(Color.primary.opacity(colorScheme == .dark ? 0.06 : 0.075), lineWidth: 1)
             )
             .shadow(color: Color.black.opacity(colorScheme == .dark ? 0 : 0.035), radius: 12, x: 0, y: 5)
-            .contextMenu {
-                Button {
-                    togglePin(for: service)
-                } label: {
-                    Label(isPinned ? "Unpin" : "Pin", systemImage: isPinned ? "pin.slash.fill" : "pin.fill")
-                }
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+
+        return Group {
+            if isPinned {
+                card
+                    .onDrag {
+                        Haptics.tap(.medium)
+                        draggedPinnedServiceNo = service.ServiceNo
+                        return NSItemProvider(object: service.ServiceNo as NSString)
+                    } preview: {
+                        Text(service.ServiceNo)
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 12)
+                            .background(Color(hex: "1B3B4F"), in: RoundedRectangle(cornerRadius: 18))
+                    }
+                    .onDrop(
+                        of: ["public.text"],
+                        delegate: PinnedBusDropDelegate(
+                            targetServiceNo: service.ServiceNo,
+                            draggedServiceNo: $draggedPinnedServiceNo,
+                            move: { source, target in
+                                withAnimation(reduceMotion ? nil : .smooth(duration: 0.18)) {
+                                    appState.previewPinnedBusServiceMove(
+                                        stopCode: busStopCode,
+                                        serviceNo: source,
+                                        over: target
+                                    )
+                                }
+                            },
+                            persist: {
+                                appState.persistPinnedBusServiceOrder(for: busStopCode)
+                            }
+                        )
+                    )
+            } else {
+                card
             }
         }
     }
@@ -587,13 +623,16 @@ struct BusStopDetailView: View {
     }
 
     private func sortedServices(_ services: [BusService]) -> [BusService] {
-        services.sorted { a, b in
-            let aPinned = appState.isBusServicePinned(stopCode: busStopCode, serviceNo: a.ServiceNo)
-            let bPinned = appState.isBusServicePinned(stopCode: busStopCode, serviceNo: b.ServiceNo)
+        let pinnedOrder = appState.pinnedBusServiceOrder(for: busStopCode)
+        let pinnedIndexes = Dictionary(uniqueKeysWithValues: pinnedOrder.enumerated().map { ($1, $0) })
+        return services.sorted { a, b in
+            let aPinnedIndex = pinnedIndexes[a.ServiceNo]
+            let bPinnedIndex = pinnedIndexes[b.ServiceNo]
+            let aPinned = aPinnedIndex != nil
+            let bPinned = bPinnedIndex != nil
             if aPinned != bPinned { return aPinned && !bPinned }
-            if aPinned, let first = appState.firstPinnedBusService(for: busStopCode) {
-                if a.ServiceNo == first { return b.ServiceNo != first }
-                if b.ServiceNo == first { return false }
+            if let aPinnedIndex, let bPinnedIndex, aPinnedIndex != bPinnedIndex {
+                return aPinnedIndex < bPinnedIndex
             }
 
             let numA = Int(a.ServiceNo.filter { $0.isNumber }) ?? 0
@@ -638,6 +677,32 @@ struct BusStopDetailView: View {
             }
         }
     }
+}
+
+private struct PinnedBusDropDelegate: DropDelegate {
+    let targetServiceNo: String
+    @Binding var draggedServiceNo: String?
+    let move: (String, String) -> Void
+    let persist: () -> Void
+
+    func dropEntered(info: DropInfo) {
+        guard let draggedServiceNo, draggedServiceNo != targetServiceNo else { return }
+        move(draggedServiceNo, targetServiceNo)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        guard draggedServiceNo != nil else { return false }
+        persist()
+        Haptics.tap(.medium)
+        draggedServiceNo = nil
+        return true
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func dropExited(info: DropInfo) {}
 }
 
 private struct LiveBoardPressStyle: ButtonStyle {
