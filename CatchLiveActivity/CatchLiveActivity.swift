@@ -41,17 +41,16 @@ struct CatchStopLiveActivity: Widget {
                                    isStale: context.isStale, showsFooter: false, showsHeader: false)
                 }
             } compactLeading: {
-                Text(context.state.services.first?.serviceNo ?? "—")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                Image(systemName: "bus.fill")
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(context.state.arrivalColor)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                    .frame(width: 24, alignment: .leading)
+                    .frame(width: 20)
+                    .accessibilityLabel("Bus \(context.state.services.first?.serviceNo ?? "")")
             } compactTrailing: {
                 CompactArrivalCountdown(state: context.state, isStale: context.isStale)
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
                     .monospacedDigit()
-                    .frame(width: 34, alignment: .trailing)
+                    .frame(width: 42, alignment: .trailing)
             } minimal: {
                 Image(systemName: "bus.fill")
                     .foregroundStyle(context.state.arrivalColor)
@@ -235,9 +234,10 @@ private struct CompactArrivalCountdown: View {
     var body: some View {
         Group {
             if isStale {
-                Text("Update")
+                Text("—")
             } else if let arrival = state.arrivalDate {
-                Text(arrival, style: .timer)
+                Text(TimeDataSource<Range<Date>>.dateRange(endingAt: arrival),
+                     format: .components(style: .abbreviated, fields: [.minute]))
             } else {
                 Text("—")
             }
