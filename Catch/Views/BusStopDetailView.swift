@@ -18,7 +18,6 @@ struct BusStopDetailView: View {
     @State private var isUpdatingLiveActivity = false
     @State private var showLiveBoardError = false
     @State private var draggedPinnedServiceNo: String?
-    @GestureState private var swipeBackTranslation: CGFloat = 0
 
     private var bgColor: Color { colorScheme == .dark ? Color(hex: "292929") : Color(hex: "F5F5F5") }
     private var cardBg: Color { colorScheme == .dark ? Color(hex: "1E1E1E") : Color.white }
@@ -53,7 +52,7 @@ struct BusStopDetailView: View {
                         Button {
                             Task { await loadArrivals() }
                         } label: {
-                            Label("Couldn’t refresh arrivals. Tap to retry.", systemImage: "arrow.clockwise")
+                            Label("Refresh arrivals", systemImage: "arrow.clockwise")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.secondary)
                         }
@@ -75,8 +74,6 @@ struct BusStopDetailView: View {
                 await loadArrivals()
             }
         }
-        .offset(x: swipeBackTranslation)
-        .animation(.interactiveSpring(response: 0.28, dampingFraction: 0.86), value: swipeBackTranslation)
         .background(isMapSheet ? Color.clear : bgColor)
         .task {
             if LiveActivityManager.shared.activeActivity?.attributes.stopCode == busStopCode {
@@ -103,23 +100,6 @@ struct BusStopDetailView: View {
             if isMapSheet, value.translation.height < -40,
                abs(value.translation.height) > abs(value.translation.width) * 1.5 { onExpand() }
         })
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 12)
-                .updating($swipeBackTranslation) { value, state, transaction in
-                    transaction.animation = nil
-                    guard !isMapSheet, value.startLocation.x <= 36,
-                          value.translation.width > 0,
-                          value.translation.width > abs(value.translation.height) * 1.8 else { return }
-                    state = max(0, value.translation.width)
-                }
-                .onEnded { value in
-                    guard !isMapSheet, value.startLocation.x <= 36,
-                          (value.translation.width > 100 || value.predictedEndTranslation.width > 180),
-                          value.translation.width > abs(value.translation.height) * 1.8 else { return }
-                    Haptics.tap()
-                    onBack()
-                }
-        )
     }
 
     private var liveBoardButton: some View {
@@ -595,7 +575,7 @@ struct BusStopDetailView: View {
             )
         } catch {
             guard !Task.isCancelled else { return }
-            arrivalsFailed = true
+            arrivalsFailed = services.isEmpty
             #if DEBUG
             print("Failed to load arrivals: \(error)")
             #endif

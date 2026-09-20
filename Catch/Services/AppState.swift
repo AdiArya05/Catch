@@ -930,15 +930,14 @@ class AppState: ObservableObject {
                         ? "No live arrivals at this stop right now."
                         : "No live arrivals for your pinned buses right now."
                 }
-
-                checkLeaveNowAlert(results: results, stopName: closestLoc.busStopDescription)
             } catch {
                 #if DEBUG
                 print("Catchability error: \(error)")
                 #endif
                 guard catchabilityRequestID == requestID else { return }
-                catchabilityResults = []
-                catchabilityMessage = "Couldn’t load arrivals. Tap your stop to try again."
+                if catchabilityResults.isEmpty {
+                    catchabilityMessage = "Pull to refresh your saved stop timings."
+                }
             }
             guard catchabilityRequestID == requestID else { return }
             isLoadingCatchability = false
@@ -959,34 +958,11 @@ class AppState: ObservableObject {
     }
 
 
-    // MARK: - Smart Leave Now Alert
+    // MARK: - Notifications
 
     func requestNotificationPermission(completion: ((Bool) -> Void)? = nil) {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
             completion?(granted)
-        }
-    }
-
-    private func checkLeaveNowAlert(results: [CatchabilityResult], stopName: String) {
-        guard isProMember && areNotificationsEnabled && isLeaveNowAlertsEnabled else { return }
-        guard let urgent = results.first(where: { $0.level == .tight && $0.leaveInMinutes <= 3 && $0.leaveInMinutes >= 0 }) else { return }
-
-        let lastAlertKey = "catch-last-alert-\(urgent.busService)"
-        let now = Date()
-        if let lastAlert = UserDefaults.standard.object(forKey: lastAlertKey) as? Date,
-           now.timeIntervalSince(lastAlert) < 120 { return }
-        UserDefaults.standard.set(now, forKey: lastAlertKey)
-
-        Task {
-            let message = "Leave now to catch Bus \(urgent.busService) · \(urgent.arrivalMinutes) min away from \(stopName)"
-
-            let content = UNMutableNotificationContent()
-            content.title = "Catch"
-            content.body = message
-            content.sound = .default
-
-            let request = UNNotificationRequest(identifier: "leaveNow-\(urgent.busService)", content: content, trigger: nil)
-            try? await UNUserNotificationCenter.current().add(request)
         }
     }
 
@@ -1012,13 +988,13 @@ class AppState: ObservableObject {
             stopLatitude: stop?.Latitude,
             stopLongitude: stop?.Longitude,
             initialArrivalMinutes: trackedService.NextBus.arrivalMinutes,
+            lastArrivalMinutes: trackedService.NextBus.arrivalMinutes,
             sawArrivalAt: trackedService.NextBus.arrivalMinutes.map { $0 <= 0 ? Date() : nil } ?? nil
         )
 
         pendingLiveBoardTrip = trip
         saveTrackedBus(trip)
         persistPendingLiveBoardTrip()
-        scheduleLiveBoardLeaveAlert(for: trip, services: services)
         completeLiveBoardTripIfReady()
     }
 
@@ -1046,6 +1022,7 @@ class AppState: ObservableObject {
 
         trip.stopName = stopName
         trip.serviceNo = selectedService.ServiceNo
+        trip.lastArrivalMinutes = selectedService.NextBus.arrivalMinutes
         if trip.stopLatitude == nil || trip.stopLongitude == nil,
            let stop = allBusStops.first(where: { $0.BusStopCode == stopCode }) {
             trip.stopLatitude = stop.Latitude
@@ -1059,14 +1036,33 @@ class AppState: ObservableObject {
 
         pendingLiveBoardTrip = trip
         persistPendingLiveBoardTrip()
-        scheduleLiveBoardLeaveAlert(for: trip, services: services)
         completeLiveBoardTripIfReady()
     }
 
-    private func scheduleLiveBoardLeaveAlert(for trip: PendingLiveBoardTrip, services: [BusService]) {
+    func schedulePendingLiveBoardLeaveAlertIfNeeded() async {
         guard isProMember && areNotificationsEnabled && isLeaveNowAlertsEnabled else { return }
-        guard let service = services.first(where: { $0.ServiceNo == trip.serviceNo }) ?? services.first,
-              let arrivalMinutes = service.NextBus.arrivalMinutes else { return }
+        guard let trip = pendingLiveBoardTrip,
+              LiveActivityManager.shared.activeActivity?.attributes.stopCode == trip.stopCode else { return }
+
+        do {
+            let response = try await LTAService.shared.fetchBusArrivals(busStopCode: trip.stopCode)
+            let services = liveBoardServices(for: trip.stopCode, services: sortedBusServices(response.Services))
+            guard let service = services.first(where: { $0.ServiceNo == trip.serviceNo }) ?? services.first,
+                  let arrivalMinutes = service.NextBus.arrivalMinutes else { return }
+            scheduleLiveBoardLeaveAlert(for: trip, arrivalMinutes: arrivalMinutes)
+        } catch {
+            if let fallback = trip.lastArrivalMinutes {
+                scheduleLiveBoardLeaveAlert(for: trip, arrivalMinutes: fallback)
+            }
+        }
+    }
+
+    func cancelPendingLiveBoardLeaveAlert() {
+        guard let trip = pendingLiveBoardTrip else { return }
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [liveBoardAlertIdentifier(for: trip)])
+    }
+
+    private func scheduleLiveBoardLeaveAlert(for trip: PendingLiveBoardTrip, arrivalMinutes: Int) {
         let walkMinutes = savedLocation(forBusStopCode: trip.stopCode)?.walkMinutes ?? 5
         let leaveIn = arrivalMinutes - walkMinutes
         guard leaveIn >= 0 else { return }
@@ -1078,10 +1074,17 @@ class AppState: ObservableObject {
             : "Leave in \(leaveIn) min to catch Bus \(trip.serviceNo) at \(trip.stopName)."
         content.sound = .default
 
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, TimeInterval(leaveIn * 60)), repeats: false)
-        let request = UNNotificationRequest(identifier: "liveBoard-\(trip.stopCode)-\(trip.serviceNo)", content: content, trigger: trigger)
+        let request = UNNotificationRequest(
+            identifier: liveBoardAlertIdentifier(for: trip),
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: max(1, TimeInterval(leaveIn * 60)), repeats: false)
+        )
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [request.identifier])
         UNUserNotificationCenter.current().add(request)
+    }
+
+    private func liveBoardAlertIdentifier(for trip: PendingLiveBoardTrip) -> String {
+        "liveBoard-\(trip.stopCode)-\(trip.serviceNo)"
     }
 
     func cancelLiveBoardTripTracking() {
@@ -1374,6 +1377,7 @@ private struct PendingLiveBoardTrip: Codable {
     var stopLatitude: Double?
     var stopLongitude: Double?
     let initialArrivalMinutes: Int?
+    var lastArrivalMinutes: Int?
     var sawArrivalAt: Date?
     var wasNearStop: Bool?
 }

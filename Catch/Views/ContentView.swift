@@ -1,6 +1,39 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import StoreKit
+import UIKit
+
+
+private struct BusStopRoute: Hashable, Identifiable {
+    let code: String
+    let name: String
+    var id: String { code }
+}
+
+
+private struct InteractivePopGestureRestorer: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> Controller { Controller() }
+    func updateUIViewController(_ controller: Controller, context: Context) {
+        controller.restoreInteractivePopGesture()
+    }
+
+    final class Controller: UIViewController, UIGestureRecognizerDelegate {
+        override func didMove(toParent parent: UIViewController?) {
+            super.didMove(toParent: parent)
+            restoreInteractivePopGesture()
+        }
+
+        func restoreInteractivePopGesture() {
+            guard let navigationController else { return }
+            navigationController.interactivePopGestureRecognizer?.isEnabled = true
+            navigationController.interactivePopGestureRecognizer?.delegate = self
+        }
+
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            navigationController?.viewControllers.count ?? 0 > 1
+        }
+    }
+}
 
 private struct LocationEditorSheet: Identifiable {
     let id: String
@@ -42,40 +75,34 @@ struct ContentView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.requestReview) private var requestReview
-    @State private var selectedBusStopCode: String?
-    @State private var selectedBusStopName: String?
+    @State private var stopPath: [BusStopRoute] = []
     @State private var showSearch = false
     @State private var showSettings = false
     @State private var locationEditorSheet: LocationEditorSheet?
     @State private var showProfile = false
 
     var body: some View {
-        ZStack {
-            (colorScheme == .dark ? Color(hex: "292929") : Color(hex: "F5F5F5")).ignoresSafeArea()
-
-            mainContent
-                .allowsHitTesting(selectedBusStopCode == nil)
-                .accessibilityHidden(selectedBusStopCode != nil)
-
-            if let code = selectedBusStopCode, let name = selectedBusStopName {
+        NavigationStack(path: $stopPath) {
+            ZStack {
+                (colorScheme == .dark ? Color(hex: "292929") : Color(hex: "F5F5F5")).ignoresSafeArea()
+                mainContent
+            }
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: BusStopRoute.self) { route in
                 BusStopDetailView(
-                    busStopCode: code,
-                    busStopName: name,
-                    onBack: {
-                        withAnimation(.smooth(duration: 0.26)) {
-                            selectedBusStopCode = nil
-                            selectedBusStopName = nil
-                        }
-                    }
+                    busStopCode: route.code,
+                    busStopName: route.name,
+                    onBack: { popToHome() }
                 )
-                .transition(.move(edge: .trailing).combined(with: .opacity))
+                .environmentObject(appState)
+                .toolbar(.hidden, for: .navigationBar)
+                .background(InteractivePopGestureRestorer())
                 .onAppear {
                     if appState.shouldPromptForReviewAfterOpeningBusStop() {
                         requestReview()
                     }
                 }
             }
-
         }
         .sheet(isPresented: $showSettings) {
             SettingsView(onDismiss: {
@@ -87,10 +114,7 @@ struct ContentView: View {
         .sheet(isPresented: $showSearch) {
             SearchView { code, name in
                 showSearch = false
-                withAnimation(.smooth(duration: 0.26)) {
-                    selectedBusStopCode = code
-                    selectedBusStopName = name
-                }
+                openStop(code: code, name: name)
             }
             .presentationDetents([.large])
         }
@@ -114,10 +138,7 @@ struct ContentView: View {
             appState.updateNearbyStops()
         }
         .onReceive(NotificationCenter.default.publisher(for: .catchHomeSelected)) { _ in
-            withAnimation(.smooth(duration: 0.25)) {
-                selectedBusStopCode = nil
-                selectedBusStopName = nil
-            }
+            popToHome()
         }
         .onAppear {
             appState.presentSecondDayProOfferIfNeeded()
@@ -125,7 +146,6 @@ struct ContentView: View {
         .onOpenURL { url in
             handleDeepLink(url)
         }
-        .animation(.smooth(duration: 0.26), value: selectedBusStopCode)
     }
 
     private var mainContent: some View {
@@ -164,6 +184,14 @@ struct ContentView: View {
         }
     }
 
+    private func openStop(code: String, name: String) {
+        stopPath = [BusStopRoute(code: code, name: name)]
+    }
+
+    private func popToHome() {
+        stopPath.removeAll()
+    }
+
     private func handleDeepLink(_ url: URL) {
         guard url.scheme == "catch" else { return }
 
@@ -178,10 +206,7 @@ struct ContentView: View {
         case "stop", "refresh", "widget":
             openLinkedStop(code: stopCode, name: stopName, shouldRefresh: host == "refresh")
         case "home":
-            withAnimation(.smooth(duration: 0.26)) {
-                selectedBusStopCode = nil
-                selectedBusStopName = nil
-            }
+            popToHome()
         case "pro":
             appState.presentProPaywall(context: "Catch Pro widgets")
         default:
@@ -201,22 +226,13 @@ struct ContentView: View {
             ?? appState.savedLocation(forBusStopCode: resolvedCode)?.busStopDescription
             ?? "Bus stop"
 
-        if shouldRefresh, selectedBusStopCode == resolvedCode {
-            withAnimation(.smooth(duration: 0.18)) {
-                selectedBusStopCode = nil
-                selectedBusStopName = nil
-            }
+        if shouldRefresh, stopPath.last?.code == resolvedCode {
+            popToHome()
             DispatchQueue.main.async {
-                withAnimation(.smooth(duration: 0.26)) {
-                    selectedBusStopCode = resolvedCode
-                    selectedBusStopName = resolvedName
-                }
+                openStop(code: resolvedCode, name: resolvedName)
             }
         } else {
-            withAnimation(.smooth(duration: 0.26)) {
-                selectedBusStopCode = resolvedCode
-                selectedBusStopName = resolvedName
-            }
+            openStop(code: resolvedCode, name: resolvedName)
         }
     }
 
@@ -288,10 +304,7 @@ struct ContentView: View {
         SavedStopStrip(locations: appState.savedLocations, isDark: colorScheme == .dark,
             onSelect: { loc in
                 guard !loc.busStopCode.isEmpty else { return }
-                withAnimation(.smooth(duration: 0.26)) {
-                    selectedBusStopCode = loc.busStopCode
-                    selectedBusStopName = loc.busStopDescription.isEmpty ? loc.name : loc.busStopDescription
-                }
+                openStop(code: loc.busStopCode, name: loc.busStopDescription.isEmpty ? loc.name : loc.busStopDescription)
             }, onEdit: { loc in
                 Haptics.tap(.medium)
                 locationEditorSheet = .edit(loc.id)
@@ -424,8 +437,7 @@ struct ContentView: View {
 
                 Button(action: {
                     withAnimation(.smooth(duration: 0.26)) {
-                        selectedBusStopCode = nearby.stop.BusStopCode
-                        selectedBusStopName = nearby.stop.Description
+                        openStop(code: nearby.stop.BusStopCode, name: nearby.stop.Description)
                     }
                 }) {
                     VStack(spacing: 0) {
@@ -577,8 +589,7 @@ struct ContentView: View {
         Button(action: {
             if !appState.catchabilityBusStopCode.isEmpty {
                 withAnimation(.smooth(duration: 0.26)) {
-                    selectedBusStopCode = appState.catchabilityBusStopCode
-                    selectedBusStopName = appState.catchabilityBusStopDescription
+                    openStop(code: appState.catchabilityBusStopCode, name: appState.catchabilityBusStopDescription)
                 }
             }
         }) {

@@ -364,7 +364,7 @@ extension CatchStopActivityAttributes {
     }
 }
 
-#if DEBUG
+#if DEBUG && targetEnvironment(simulator)
 private extension CatchStopActivityAttributes {
     static var preview: Self {
         .init(

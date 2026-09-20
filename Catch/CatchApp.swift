@@ -29,12 +29,16 @@ struct CatchApp: App {
                 appState.setProMembership(proStore.hasActiveEntitlement)
             }
             .task(id: scenePhase) {
-                guard scenePhase == .active else { return }
-                while !Task.isCancelled {
-                    await appState.refreshActiveLiveBoardIfNeeded()
-                    let secondsToNextMinute = 60 - Date().timeIntervalSince1970.truncatingRemainder(dividingBy: 60)
-                    do { try await Task.sleep(for: .seconds(secondsToNextMinute)) }
-                    catch { return }
+                if scenePhase == .active {
+                    appState.cancelPendingLiveBoardLeaveAlert()
+                    while !Task.isCancelled {
+                        await appState.refreshActiveLiveBoardIfNeeded()
+                        let secondsToNextMinute = 60 - Date().timeIntervalSince1970.truncatingRemainder(dividingBy: 60)
+                        do { try await Task.sleep(for: .seconds(secondsToNextMinute)) }
+                        catch { return }
+                    }
+                } else if scenePhase == .background {
+                    await appState.schedulePendingLiveBoardLeaveAlertIfNeeded()
                 }
             }
             .onChange(of: proStore.hasActiveEntitlement) { _, isActive in

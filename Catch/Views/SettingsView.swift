@@ -283,15 +283,24 @@ struct SettingsView: View {
     }
 
     private var settingsFooter: some View {
-        VStack(spacing: 6) {
-            Text("Catch")
-                .font(.system(size: 19, weight: .bold))
-                .tracking(19 * -0.025)
-                .foregroundColor(Color(hex: "555555"))
-            Text("Made by Aditya Arya")
-                .font(.system(size: 15, weight: .medium))
-                .tracking(15 * -0.025)
-                .foregroundColor(Color(hex: "444444"))
+        VStack(spacing: 8) {
+            Image(appIconOption(for: selectedAppIconName).previewAsset)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 42, height: 42)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .shadow(color: .black.opacity(colorScheme == .dark ? 0.22 : 0.10), radius: 10, x: 0, y: 4)
+
+            VStack(spacing: 4) {
+                Text("Catch")
+                    .font(.system(size: 19, weight: .bold))
+                    .tracking(19 * -0.025)
+                    .foregroundColor(Color(hex: "555555"))
+                Text("Made by Aditya Arya")
+                    .font(.system(size: 15, weight: .medium))
+                    .tracking(15 * -0.025)
+                    .foregroundColor(Color(hex: "444444"))
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 56)
