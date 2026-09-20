@@ -283,43 +283,19 @@ struct SettingsView: View {
     }
 
     private var settingsFooter: some View {
-        VStack(spacing: 22) {
-            VStack(spacing: 8) {
-                Text("Catch")
-                    .font(.system(size: 39, weight: .black))
-                    .tracking(39 * -0.035)
-                    .foregroundColor(Color(hex: "555555").opacity(0.72))
-
-                Text("Developed in Singapore")
-                    .font(.system(size: 18, weight: .bold))
-                    .tracking(18 * -0.025)
-                    .foregroundColor(Color(hex: "555555").opacity(0.72))
-                Text("catchbyadi.framer.website")
-                    .font(.system(size: 18, weight: .bold))
-                    .tracking(18 * -0.025)
-                    .foregroundColor(Color(hex: "555555").opacity(0.72))
-            }
-
-            HStack(spacing: 30) {
-                Button { openURL(CatchLegalURL.x) } label: {
-                    Text("𝕏")
-                        .font(.system(size: 28, weight: .bold))
-                }
-                Button { openURL(CatchLegalURL.website) } label: {
-                    Image(systemName: "globe")
-                        .font(.system(size: 27, weight: .bold))
-                }
-                Button { showFeedback = true } label: {
-                    Image(systemName: "bubble.left.and.bubble.right.fill")
-                        .font(.system(size: 27, weight: .bold))
-                }
-            }
-            .foregroundColor(Color(hex: "555555").opacity(0.78))
-            .buttonStyle(.plain)
+        VStack(spacing: 6) {
+            Text("Catch")
+                .font(.system(size: 19, weight: .bold))
+                .tracking(19 * -0.025)
+                .foregroundColor(Color(hex: "555555"))
+            Text("Made by Aditya Arya")
+                .font(.system(size: 15, weight: .medium))
+                .tracking(15 * -0.025)
+                .foregroundColor(Color(hex: "444444"))
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 62)
-        .padding(.bottom, 30)
+        .padding(.top, 56)
+        .padding(.bottom, 28)
     }
 
     private func presentSettingsProPaywall(context: String) {

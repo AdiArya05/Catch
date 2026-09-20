@@ -41,19 +41,23 @@ struct CatchStopLiveActivity: Widget {
                                    isStale: context.isStale, showsFooter: false, showsHeader: false)
                 }
             } compactLeading: {
-                Image(systemName: "bus.fill")
-                    .font(.system(size: 11, weight: .bold))
+                Text(context.state.services.first?.serviceNo ?? "—")
+                    .font(.system(size: 12, weight: .black, design: .rounded))
                     .foregroundStyle(context.state.arrivalColor)
-                    .accessibilityLabel("Bus")
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .frame(width: 28, alignment: .leading)
+                    .accessibilityLabel("Bus \(context.state.services.first?.serviceNo ?? "unknown")")
             } compactTrailing: {
                 CompactArrivalCountdown(state: context.state, isStale: context.isStale)
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
                     .monospacedDigit()
                     .frame(width: 42, alignment: .trailing)
             } minimal: {
-                Image(systemName: "bus.fill")
-                    .font(.system(size: 10, weight: .bold))
+                CompactArrivalCountdown(state: context.state, isStale: context.isStale)
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
                     .foregroundStyle(context.state.arrivalColor)
+                    .monospacedDigit()
             }
             .contentMargins(.horizontal, 12, for: .expanded)
             .widgetURL(context.attributes.stopURL)
@@ -274,43 +278,14 @@ private struct BusArrivalTrack: View {
                     .scaleEffect(x: 1, y: 3, anchor: .center)
                     .frame(height: 13)
                     .clipShape(Capsule())
-
-                    // Begin the display schedule at the current render time. Using
-                    // the activity start here leaves WidgetKit on its first entry
-                    // after the system-managed ProgressView has already advanced.
-                    TimelineView(.periodic(from: .now, by: 1)) { timeline in
-                        BusProgressMarker(progress: state.arrivalProgress(at: timeline.date))
-                    }
                 }
-                .frame(height: 24)
+                .frame(height: 13)
             } else {
                 ArrivalProgressDrawing(progress: state.arrivalProgress, color: state.arrivalColor)
-                    .frame(height: 24).opacity(0.45)
+                    .frame(height: 13).opacity(0.45)
             }
         }
         .accessibilityLabel("Estimated bus arrival progress")
-    }
-}
-
-private struct BusProgressMarker: View {
-    let progress: CGFloat
-
-    var body: some View {
-        GeometryReader { geometry in
-            let markerSize: CGFloat = 24
-            let fraction = min(1, max(0, progress))
-            let travel = max(0, geometry.size.width - markerSize)
-            let markerX = travel * fraction
-
-            Image(systemName: "bus.fill")
-                .font(.system(size: 13, weight: .black))
-                .foregroundStyle(.black)
-                .frame(width: markerSize, height: markerSize)
-                .background(.white, in: Circle())
-                .overlay(Circle().stroke(.black, lineWidth: 3))
-                .offset(x: markerX)
-                .animation(.linear(duration: 1), value: fraction)
-        }
     }
 }
 
@@ -325,23 +300,13 @@ private struct ArrivalProgressDrawing: View, Animatable {
 
     var body: some View {
         GeometryReader { geometry in
-            let radius: CGFloat = 12
-            let travel = max(0, geometry.size.width - radius * 2)
             let fraction = min(1, max(0, progress))
-            let markerX = radius + travel * fraction
             ZStack(alignment: .leading) {
                 Capsule().fill(color.opacity(0.18)).frame(height: 13)
                 Capsule().fill(color)
-                    .frame(width: markerX, height: 13)
-                Image(systemName: "bus.fill")
-                    .font(.system(size: 13, weight: .black))
-                    .foregroundStyle(.black)
-                    .frame(width: radius * 2, height: radius * 2)
-                    .background(.white, in: Circle())
-                    .overlay(Circle().stroke(.black, lineWidth: 3))
-                    .offset(x: markerX - radius)
+                    .frame(width: max(0, geometry.size.width * fraction), height: 13)
             }
-            .frame(height: 24)
+            .frame(height: 13)
         }
     }
 }
