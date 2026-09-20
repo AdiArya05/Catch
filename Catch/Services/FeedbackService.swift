@@ -7,6 +7,8 @@ struct FeedbackPost: Decodable, Identifiable {
     let status: String
     let developer_response: String?
     let created_at: String
+    let upvote_count: Int?
+    let did_upvote: Bool?
 }
 
 actor FeedbackService {
@@ -82,7 +84,7 @@ actor FeedbackService {
     }
     func posts() async throws -> [FeedbackPost] {
         let bearer = try await authenticate()
-        let data = try await request("rest/v1/feedback?select=id,body,status,developer_response,created_at&order=created_at.desc&limit=100", bearer: bearer)
+        let data = try await request("rest/v1/rpc/feedback_feed", method: "POST", body: [:], bearer: bearer)
         return try JSONDecoder().decode([FeedbackPost].self, from: data)
     }
     func submit(_ body: String, id: UUID) async throws {
@@ -90,6 +92,11 @@ actor FeedbackService {
         guard (10...4000).contains(trimmed.count) else { throw Failure.invalid }
         let bearer = try await authenticate()
         _ = try await request("rest/v1/rpc/submit_feedback", method: "POST", body: ["message": trimmed, "request_id": id.uuidString], bearer: bearer)
+    }
+
+    func toggleUpvote(postID: UUID) async throws {
+        let bearer = try await authenticate()
+        _ = try await request("rest/v1/rpc/toggle_feedback_upvote", method: "POST", body: ["feedback_id": postID.uuidString], bearer: bearer)
     }
 
     func registerLiveActivity(

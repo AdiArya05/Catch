@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import StoreKit
 
 private struct LocationEditorSheet: Identifiable {
     let id: String
@@ -40,6 +41,7 @@ private struct LocationEditorSheet: Identifiable {
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.requestReview) private var requestReview
     @State private var selectedBusStopCode: String?
     @State private var selectedBusStopName: String?
     @State private var showSearch = false
@@ -67,6 +69,11 @@ struct ContentView: View {
                     }
                 )
                 .transition(.move(edge: .trailing).combined(with: .opacity))
+                .onAppear {
+                    if appState.shouldPromptForReviewAfterOpeningBusStop() {
+                        requestReview()
+                    }
+                }
             }
 
         }

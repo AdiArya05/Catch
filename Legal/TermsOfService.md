@@ -78,7 +78,7 @@ You agree not to:
 
 ## 9. Feedback Board
 
-When you submit feedback, you give Catch permission to store, display, moderate, respond to, and use that feedback to support and improve the app. You keep ownership of your original feedback. Do not include personal, confidential, or sensitive information that you do not want processed as described in the Privacy Policy.
+When you submit feedback or upvote visible feedback, you give Catch permission to store, display, moderate, respond to, and use that feedback activity to support and improve the app. You keep ownership of your original feedback. Do not include personal, confidential, or sensitive information that you do not want processed as described in the Privacy Policy.
 
 Catch may remove feedback, change its status, or restrict submissions when needed to keep the board useful, safe, and reliable. Submission does not guarantee a response or that a requested change will be implemented.
 

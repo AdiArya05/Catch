@@ -115,37 +115,20 @@ struct SettingsView: View {
                     }
                     dotLine
 
-                    // Leave Alerts
-                    row(icon: "bell.badge.fill", iconColor: Color(hex: "FF9F0A"), label: "Leave Alerts", isPro: true) {
+                    // Alerts & Notifications
+                    row(icon: "bell.badge.fill", iconColor: Color(hex: "FF9F0A"), label: "Alerts & Notifications", isPro: true) {
                         Toggle("", isOn: Binding(
-                            get: { appState.isProMember && appState.isLeaveNowAlertsEnabled },
+                            get: { appState.isProMember && appState.areNotificationsEnabled && appState.isLeaveNowAlertsEnabled },
                             set: { newValue in
                                 guard appState.isProMember else {
-                                    presentSettingsProPaywall(context: "Smart leave-now alerts")
+                                    presentSettingsProPaywall(context: "Leave alerts and notifications")
                                     return
                                 }
-                                appState.saveLeaveNowAlerts(newValue)
+                                appState.saveTravelAlertsEnabled(newValue)
                             }
                         ))
                         .labelsHidden()
                         .tint(Color(hex: "34C759"))
-                    }
-                    dotLine
-
-                    // Notifications
-                    row(icon: "bell.fill", iconColor: Color(hex: "FF453A"), label: "Notifications", isPro: true) {
-                        Toggle("", isOn: Binding(
-                            get: { appState.isProMember && appState.areNotificationsEnabled },
-                            set: { newValue in
-                                guard appState.isProMember else {
-                                    presentSettingsProPaywall(context: "Notifications")
-                                    return
-                                }
-                                appState.saveNotificationsEnabled(newValue)
-                            }
-                        ))
-                            .labelsHidden()
-                            .tint(Color(hex: "34C759"))
                     }
                     dotLine
 
@@ -205,6 +188,7 @@ struct SettingsView: View {
                     dotLine
 
                     Button {
+                        Haptics.tap(.light)
                         requestReview()
                     } label: {
                         row(icon: "star", iconColor: Color(hex: "FFD60A"), label: "Leave a Review") {
@@ -243,30 +227,7 @@ struct SettingsView: View {
                     }
                     .buttonStyle(.plain)
 
-                    // Footer
-                    VStack(spacing: 8) {
-                        Image("CatchIcon")
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 34, height: 34)
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .stroke(Color.white.opacity(0.10), lineWidth: 1)
-                            )
-
-                        Text("Catch")
-                            .font(.system(size: 19, weight: .bold))
-                            .tracking(19 * -0.025)
-                            .foregroundColor(Color(hex: "555555"))
-                        Text("Made by Aditya Arya")
-                            .font(.system(size: 15, weight: .medium))
-                            .tracking(15 * -0.025)
-                            .foregroundColor(Color(hex: "444444"))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 56)
-                    .padding(.bottom, 28)
+                    settingsFooter
                 }
                 .padding(.horizontal, 34)
                 .padding(.top, 28)
@@ -319,6 +280,46 @@ struct SettingsView: View {
             }
         }
         .frame(height: 64)
+    }
+
+    private var settingsFooter: some View {
+        VStack(spacing: 22) {
+            VStack(spacing: 8) {
+                Text("Catch")
+                    .font(.system(size: 39, weight: .black))
+                    .tracking(39 * -0.035)
+                    .foregroundColor(Color(hex: "555555").opacity(0.72))
+
+                Text("Developed in Singapore")
+                    .font(.system(size: 18, weight: .bold))
+                    .tracking(18 * -0.025)
+                    .foregroundColor(Color(hex: "555555").opacity(0.72))
+                Text("catchbyadi.framer.website")
+                    .font(.system(size: 18, weight: .bold))
+                    .tracking(18 * -0.025)
+                    .foregroundColor(Color(hex: "555555").opacity(0.72))
+            }
+
+            HStack(spacing: 30) {
+                Button { openURL(CatchLegalURL.x) } label: {
+                    Text("𝕏")
+                        .font(.system(size: 28, weight: .bold))
+                }
+                Button { openURL(CatchLegalURL.website) } label: {
+                    Image(systemName: "globe")
+                        .font(.system(size: 27, weight: .bold))
+                }
+                Button { showFeedback = true } label: {
+                    Image(systemName: "bubble.left.and.bubble.right.fill")
+                        .font(.system(size: 27, weight: .bold))
+                }
+            }
+            .foregroundColor(Color(hex: "555555").opacity(0.78))
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 62)
+        .padding(.bottom, 30)
     }
 
     private func presentSettingsProPaywall(context: String) {
@@ -505,7 +506,7 @@ private struct LegalTextView: View {
                     ("Local-first design", "Catch does not require an account in the current version. Saved places, pinned buses, app settings, and commute preferences are stored on your device."),
                     ("Location", "If you allow location access, Catch uses your device location to show nearby stops, choose the most relevant saved place for Can I Catch It, and estimate walking time. Catch does not currently store your location history on a developer backend."),
                     ("Widgets and Live Activities", "Selected stop, bus, and timing data is shared through the app group on your device so widgets, Live Activities, and Dynamic Island can display current information. While Live Board is active, Catch also temporarily sends an ActivityKit push token, an anonymous app-session identifier, the selected stop code and bus service, and timing metadata to Catch's Supabase backend so the Live Activity can refresh in the background. Registrations expire automatically and do not include your location history."),
-                    ("Feedback", "If you use the feedback board, Catch stores your feedback, its status, and any developer response in Catch's Supabase backend. An anonymous app-session identifier is used to submit and retrieve your feedback; no name or email address is required."),
+                    ("Feedback", "If you use the feedback board, Catch stores your feedback, upvote activity, its status, and any developer response in Catch's Supabase backend. An anonymous app-session identifier is used to submit and retrieve your feedback; no name or email address is required."),
                     ("Transport data", "Bus arrivals are fetched from LTA DataMall using bus stop codes. LTA or network providers may receive normal technical request information such as IP address as part of providing the service."),
                     ("Notifications", "Leave-now alerts require notification permission and are generated from local bus timing logic. You can turn Catch notifications off in the app and manage system permission in iOS Settings."),
                     ("Subscriptions", "Purchases are handled by Apple through StoreKit. Catch receives entitlement status to unlock Pro features, but does not receive your full payment card details."),

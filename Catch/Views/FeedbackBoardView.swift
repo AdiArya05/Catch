@@ -11,6 +11,7 @@ struct FeedbackBoardView: View {
     @State private var submitting = false
     @State private var newestFirst = true
     @State private var submitted = false
+    @State private var votingIDs: Set<UUID> = []
     private var sortedPosts: [FeedbackPost] { newestFirst ? posts : posts.reversed() }
     var body: some View {
         NavigationStack {
@@ -31,6 +32,21 @@ struct FeedbackBoardView: View {
                             HStack {
                                 Text(String(post.created_at.prefix(10))).font(.caption).foregroundStyle(.secondary)
                                 Spacer()
+                                Button {
+                                    Task { await toggleUpvote(post) }
+                                } label: {
+                                    HStack(spacing: 5) {
+                                        Image(systemName: post.did_upvote == true ? "arrowtriangle.up.fill" : "arrowtriangle.up")
+                                        Text("\(post.upvote_count ?? 0)")
+                                    }
+                                    .font(.caption.bold())
+                                    .foregroundStyle(post.did_upvote == true ? .blue : .secondary)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(.primary.opacity(0.06), in: Capsule())
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(votingIDs.contains(post.id))
                                 Text(post.status.capitalized).font(.caption.bold())
                                     .padding(.horizontal, 12).padding(.vertical, 6)
                                     .background(.blue.opacity(0.14), in: Capsule())
@@ -92,5 +108,18 @@ struct FeedbackBoardView: View {
             draft = ""; requestID = UUID(); error = nil; composing = false; submitted = true; Haptics.tap(.medium)
             await load()
         } catch { self.error = error.localizedDescription }
+    }
+
+    @MainActor private func toggleUpvote(_ post: FeedbackPost) async {
+        guard !votingIDs.contains(post.id) else { return }
+        votingIDs.insert(post.id)
+        defer { votingIDs.remove(post.id) }
+        do {
+            try await FeedbackService.shared.toggleUpvote(postID: post.id)
+            Haptics.tap(.light)
+            await load()
+        } catch {
+            self.error = error.localizedDescription
+        }
     }
 }

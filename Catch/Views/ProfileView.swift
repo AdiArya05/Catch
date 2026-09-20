@@ -10,7 +10,7 @@ struct ProfileView: View {
     private var dashColor: Color { colorScheme == .dark ? Color(hex: "3A3A3A") : Color(hex: "CCCCCC") }
 
     private var logs: [CommuteLogEntry] {
-        appState.commuteLogs().filter { $0.source == "detected" }
+        appState.commuteLogs().filter { $0.source == "detected" || $0.source == "live_board" }
     }
 
     private var totalCommutes: Int { logs.count }
@@ -221,7 +221,7 @@ struct ProfileView: View {
     private var tripHistory: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Your recorded trips").font(.headline)
-            Text("Catch detects a possible trip when you are near the tracked stop, the bus is arriving, and you then move away. These are estimates, not confirmed boardings. Simply opening Live Board doesn’t count.")
+            Text("Catch records trips from Live Board arrivals and strengthens them when location shows you were near the stop and moved away. These are estimates, not confirmed boardings. Simply opening Live Board doesn’t count.")
                 .font(.footnote).foregroundStyle(.secondary)
             if logs.isEmpty {
                 Text("No detected trips yet.").font(.subheadline.bold())
@@ -233,7 +233,7 @@ struct ProfileView: View {
                 }
                 Divider()
             }
-            let olderCount = appState.commuteLogs().filter { $0.source != "detected" }.count
+            let olderCount = appState.commuteLogs().filter { $0.source != "detected" && $0.source != "live_board" }.count
             if olderCount > 0 {
                 Text("\(olderCount) older records are preserved, but excluded from these totals because their trip source wasn’t recorded.")
                     .font(.footnote).foregroundStyle(.secondary)

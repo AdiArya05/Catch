@@ -151,7 +151,7 @@ struct BusStopDetailView: View {
                                 Image(systemName: "lock.fill")
                                     .font(.system(size: 10, weight: .black))
                             }
-                            Text(appState.isProMember ? busCountText(displayServices.isEmpty ? 0 : 1) : "Pro")
+                            Text(appState.isProMember ? busCountText(displayServices.count) : "Pro")
                                 .font(.system(size: 15, weight: .black))
                                 .tracking(15 * -0.025)
                         }
@@ -163,7 +163,7 @@ struct BusStopDetailView: View {
                     .clipShape(Capsule())
         }
         .buttonStyle(LiveBoardPressStyle())
-        .animation(reduceMotion ? nil : .smooth(duration: 0.16), value: isWatchingLiveActivity)
+        .animation(reduceMotion ? nil : .smooth(duration: 0.10), value: isWatchingLiveActivity)
         .disabled(displayServices.isEmpty || isUpdatingLiveActivity)
         .accessibilityLabel(isWatchingLiveActivity ? "Stop Live Board" : "Start Live Board for the first bus")
     }
@@ -637,13 +637,15 @@ struct BusStopDetailView: View {
                 stopName: targetName,
                 services: targetServices
             )
-            await appState.refreshWidgetSnapshot(
-                preferredStopCode: targetCode,
-                preferredStopName: targetName,
-                services: targetServices
-            )
             isWatchingLiveActivity = LiveActivityManager.shared.activeActivity?.attributes.stopCode == targetCode
             if !isWatchingLiveActivity { appState.cancelLiveBoardTripTracking() }
+            Task {
+                await appState.refreshWidgetSnapshot(
+                    preferredStopCode: targetCode,
+                    preferredStopName: targetName,
+                    services: targetServices
+                )
+            }
         }
     }
 

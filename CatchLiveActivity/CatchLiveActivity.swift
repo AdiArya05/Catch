@@ -41,20 +41,18 @@ struct CatchStopLiveActivity: Widget {
                                    isStale: context.isStale, showsFooter: false, showsHeader: false)
                 }
             } compactLeading: {
-                Text(context.state.services.first?.serviceNo ?? "—")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                Image(systemName: "bus.fill")
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(context.state.arrivalColor)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .accessibilityLabel("Bus \(context.state.services.first?.serviceNo ?? "")")
+                    .accessibilityLabel("Bus")
             } compactTrailing: {
                 CompactArrivalCountdown(state: context.state, isStale: context.isStale)
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
                     .monospacedDigit()
                     .frame(width: 42, alignment: .trailing)
             } minimal: {
-                Text(context.state.services.first?.serviceNo ?? "—")
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                Image(systemName: "bus.fill")
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(context.state.arrivalColor)
             }
             .contentMargins(.horizontal, 12, for: .expanded)
@@ -257,7 +255,7 @@ private struct BusArrivalTrack: View {
         Group {
             if let arrival = state.arrivalDate, !isStale {
                 let start = min(state.progressStartedAt ?? state.updatedAt, arrival.addingTimeInterval(-1))
-                let finish = max(start.addingTimeInterval(1), arrival.addingTimeInterval(-120))
+                let finish = max(start.addingTimeInterval(1), arrival.addingTimeInterval(-60))
                 ZStack {
                     Capsule()
                         .fill(state.arrivalColor.opacity(0.18))
@@ -304,8 +302,9 @@ private struct BusProgressMarker: View {
             let travel = max(0, geometry.size.width - markerSize)
             let markerX = travel * fraction
 
-            Circle()
-                .fill(.white)
+            Image(systemName: "bus.fill")
+                .font(.system(size: 13, weight: .black))
+                .foregroundStyle(.black)
                 .frame(width: markerSize, height: markerSize)
                 .background(.white, in: Circle())
                 .overlay(Circle().stroke(.black, lineWidth: 3))
@@ -334,8 +333,9 @@ private struct ArrivalProgressDrawing: View, Animatable {
                 Capsule().fill(color.opacity(0.18)).frame(height: 13)
                 Capsule().fill(color)
                     .frame(width: markerX, height: 13)
-                Circle()
-                    .fill(.white)
+                Image(systemName: "bus.fill")
+                    .font(.system(size: 13, weight: .black))
+                    .foregroundStyle(.black)
                     .frame(width: radius * 2, height: radius * 2)
                     .background(.white, in: Circle())
                     .overlay(Circle().stroke(.black, lineWidth: 3))
@@ -379,10 +379,10 @@ extension CatchStopActivityAttributes.ContentState {
     func arrivalProgress(at date: Date) -> CGFloat {
         guard let arrivalDate else { return 0 }
         let start = progressStartedAt ?? updatedAt
-        // The ETA shown as "1 minute" begins below two minutes because bus
-        // arrival minutes are intentionally floored. Complete the track at that
-        // threshold so the bar and marker are at the end throughout that state.
-        let finish = arrivalDate.addingTimeInterval(-120)
+        // Complete the track once the display reaches the final minute so both
+        // the fill and bus marker match the user's "1 minute means at the end"
+        // expectation.
+        let finish = arrivalDate.addingTimeInterval(-60)
         let duration = finish.timeIntervalSince(start)
         guard duration > 0 else { return 1 }
         return min(1, max(0, date.timeIntervalSince(start) / duration))

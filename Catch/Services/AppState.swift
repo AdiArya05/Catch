@@ -21,6 +21,8 @@ class AppState: ObservableObject {
         static let pinnedBusServices = "catch-pinned-bus-services"
         static let pendingLiveBoardTrip = "catch-pending-live-board-trip"
         static let notificationsEnabled = "catch-notifications-enabled"
+        static let busStopOpenCount = "catch-bus-stop-open-count"
+        static let reviewPromptShown = "catch-review-prompt-shown"
     }
 
     @Published var nearbyStops: [NearbyStop] = []
@@ -473,7 +475,7 @@ class AppState: ObservableObject {
         var pinnedBuses: [CatchWidgetBus] = []
 
         if let preferredStopCode {
-            let pinned = pinnedBusServices(for: preferredStopCode)
+            let pinned = pinnedBusServiceOrder(for: preferredStopCode)
             let walkMinutes = preferredLocation?.walkMinutes ?? selectedLocation?.walkMinutes ?? 5
 
             if let preferredServices {
@@ -550,7 +552,7 @@ class AppState: ObservableObject {
         do {
             let response = try await LTAService.shared.fetchBusArrivals(busStopCode: location.busStopCode)
             let sorted = sortedBusServices(response.Services)
-            let pinned = pinnedBusServices(for: location.busStopCode)
+            let pinned = pinnedBusServiceOrder(for: location.busStopCode)
             let source = preferPinned ? prioritizePinnedServices(sorted, pinned: pinned) : sorted
             return source.prefix(limit).map { widgetBus(from: $0, walkMinutes: location.walkMinutes) }
         } catch {
@@ -561,10 +563,13 @@ class AppState: ObservableObject {
         }
     }
 
-    private func prioritizePinnedServices(_ services: [BusService], pinned: Set<String>) -> [BusService] {
+    private func prioritizePinnedServices(_ services: [BusService], pinned: [String]) -> [BusService] {
         guard !pinned.isEmpty else { return services }
-        let pinnedServices = services.filter { pinned.contains($0.ServiceNo) }
-        let remainingServices = services.filter { !pinned.contains($0.ServiceNo) }
+        let order = Dictionary(uniqueKeysWithValues: pinned.enumerated().map { ($1, $0) })
+        let pinnedServices = services
+            .filter { order[$0.ServiceNo] != nil }
+            .sorted { (order[$0.ServiceNo] ?? .max) < (order[$1.ServiceNo] ?? .max) }
+        let remainingServices = services.filter { order[$0.ServiceNo] == nil }
         return pinnedServices + remainingServices
     }
 
@@ -700,6 +705,22 @@ class AppState: ObservableObject {
         }
     }
 
+    func saveTravelAlertsEnabled(_ value: Bool) {
+        guard isProMember || value == false else {
+            presentProPaywall(context: "Leave alerts and notifications")
+            return
+        }
+        isLeaveNowAlertsEnabled = value
+        UserDefaults.standard.set(value, forKey: "catch-leave-now-enabled")
+        if value {
+            saveNotificationsEnabled(true)
+        } else {
+            saveNotificationPermissionResult(false)
+            UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        }
+        persistAppSettings()
+    }
+
     func saveNotificationPermissionResult(_ granted: Bool) {
         let enabled = granted && isProMember
         areNotificationsEnabled = enabled
@@ -779,6 +800,15 @@ class AppState: ObservableObject {
     func presentProPaywall(context: String = "Catch Pro") {
         proPaywallContext = context
         showProPaywall = true
+    }
+
+    func shouldPromptForReviewAfterOpeningBusStop() -> Bool {
+        guard !UserDefaults.standard.bool(forKey: DefaultsKey.reviewPromptShown) else { return false }
+        let count = UserDefaults.standard.integer(forKey: DefaultsKey.busStopOpenCount) + 1
+        UserDefaults.standard.set(count, forKey: DefaultsKey.busStopOpenCount)
+        guard count >= 3 else { return false }
+        UserDefaults.standard.set(true, forKey: DefaultsKey.reviewPromptShown)
+        return true
     }
 
     private func registerFirstUseDate() {
@@ -988,6 +1018,7 @@ class AppState: ObservableObject {
         pendingLiveBoardTrip = trip
         saveTrackedBus(trip)
         persistPendingLiveBoardTrip()
+        scheduleLiveBoardLeaveAlert(for: trip, services: services)
         completeLiveBoardTripIfReady()
     }
 
@@ -1023,11 +1054,34 @@ class AppState: ObservableObject {
 
         if selectedService.NextBus.arrivalMinutes == 0 {
             trip.sawArrivalAt = trip.sawArrivalAt ?? Date()
+            recordLiveBoardArrivalIfNeeded(trip)
         }
 
         pendingLiveBoardTrip = trip
         persistPendingLiveBoardTrip()
+        scheduleLiveBoardLeaveAlert(for: trip, services: services)
         completeLiveBoardTripIfReady()
+    }
+
+    private func scheduleLiveBoardLeaveAlert(for trip: PendingLiveBoardTrip, services: [BusService]) {
+        guard isProMember && areNotificationsEnabled && isLeaveNowAlertsEnabled else { return }
+        guard let service = services.first(where: { $0.ServiceNo == trip.serviceNo }) ?? services.first,
+              let arrivalMinutes = service.NextBus.arrivalMinutes else { return }
+        let walkMinutes = savedLocation(forBusStopCode: trip.stopCode)?.walkMinutes ?? 5
+        let leaveIn = arrivalMinutes - walkMinutes
+        guard leaveIn >= 0 else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "Catch"
+        content.body = leaveIn <= 1
+            ? "Leave now to catch Bus \(trip.serviceNo) at \(trip.stopName)."
+            : "Leave in \(leaveIn) min to catch Bus \(trip.serviceNo) at \(trip.stopName)."
+        content.sound = .default
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, TimeInterval(leaveIn * 60)), repeats: false)
+        let request = UNNotificationRequest(identifier: "liveBoard-\(trip.stopCode)-\(trip.serviceNo)", content: content, trigger: trigger)
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [request.identifier])
+        UNUserNotificationCenter.current().add(request)
     }
 
     func cancelLiveBoardTripTracking() {
@@ -1080,6 +1134,18 @@ class AppState: ObservableObject {
         guard !duplicate else { return }
 
         logCommuteEntry(stopCode: trip.stopCode, stopName: trip.stopName, services: [trip.serviceNo], source: "detected")
+    }
+
+    private func recordLiveBoardArrivalIfNeeded(_ trip: PendingLiveBoardTrip) {
+        let now = Date()
+        let recentWindow: TimeInterval = 45 * 60
+        let duplicate = loadCommuteLogs().contains { log in
+            log.stopCode == trip.stopCode &&
+            log.busServices.contains(trip.serviceNo) &&
+            now.timeIntervalSince(log.timestamp) < recentWindow
+        }
+        guard !duplicate else { return }
+        logCommuteEntry(stopCode: trip.stopCode, stopName: trip.stopName, services: [trip.serviceNo], source: "live_board")
     }
 
     private func loadPendingLiveBoardTrip() {

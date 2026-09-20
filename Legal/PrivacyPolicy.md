@@ -39,7 +39,7 @@ Your precise location is processed on your device for these features. Catch does
 
 ### Feedback Board
 
-If you use the Feedback Board, Catch sends the text you submit to Catch's Supabase project. Supabase assigns an anonymous account identifier so the app can show you your own unpublished submissions and apply submission limits. Feedback is private by default. A developer may review it, update its status, add a response, and choose to publish it in the board. Do not include personal or sensitive information in feedback.
+If you use the Feedback Board, Catch sends the text you submit to Catch's Supabase project. Supabase assigns an anonymous account identifier so the app can show you your own unpublished submissions, apply submission limits, and remember feedback upvotes. Feedback is private by default. A developer may review it, update its status, add a response, and choose to publish it in the board. Do not include personal or sensitive information in feedback.
 
 The feedback record contains the feedback text, anonymous account identifier, status, optional developer response, publication state, and submission time. It does not include your email address, display name, saved places, bus history, or precise location.
 

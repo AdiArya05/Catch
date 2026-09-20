@@ -36,7 +36,7 @@ Recommended answer for the current build: Data is collected by the developer.
 
 Catch remains local-first for location, saved places, pinned buses, settings, notification preferences, receipts, and widget/live activity state. The Feedback Board adds two collected data types:
 
-- **User Content → Other User Content**: feedback text, linked to the anonymous feedback account, used for App Functionality, and not used for tracking.
+- **User Content → Other User Content**: feedback text and feedback upvote activity, linked to the anonymous feedback account, used for App Functionality, and not used for tracking.
 - **Identifiers → User ID**: a Supabase-generated anonymous account identifier used to show a person their unpublished submissions and enforce abuse limits, linked to that anonymous account, used for App Functionality, and not used for tracking.
 
 No email address, name, advertising identifier, saved place, bus history, or precise location is sent with feedback.

@@ -443,7 +443,7 @@ private struct MediumBusWidget: View {
                         .minimumScaleFactor(0.48)
                         .allowsTightening(true)
 
-                    Text("Updated now")
+                    Text(relativeUpdatedText(snapshot.updatedAt))
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(CatchWidgetStyle.muted)
                         .lineLimit(1)
@@ -987,7 +987,16 @@ private func arrivalCompactText(_ minutes: Int?) -> String {
 
 private func widgetBuses(from snapshot: CatchWidgetSnapshot) -> [CatchWidgetBus] {
     var seen = Set<String>()
-    let buses = snapshot.pinnedBuses + (snapshot.home?.buses ?? []) + (snapshot.work?.buses ?? [])
+    let selectedBuses = snapshot.pinnedBuses
+    let savedPlaceBuses = (snapshot.savedPlaces ?? [])
+        .sorted { lhs, rhs in
+            let lhsPinned = lhs.stopCode == snapshot.stopCode
+            let rhsPinned = rhs.stopCode == snapshot.stopCode
+            if lhsPinned != rhsPinned { return lhsPinned && !rhsPinned }
+            return lhs.label.localizedStandardCompare(rhs.label) == .orderedAscending
+        }
+        .flatMap(\.buses)
+    let buses = selectedBuses + savedPlaceBuses + (snapshot.home?.buses ?? []) + (snapshot.work?.buses ?? [])
     return buses.filter { bus in
         guard !seen.contains(bus.serviceNo) else { return false }
         seen.insert(bus.serviceNo)

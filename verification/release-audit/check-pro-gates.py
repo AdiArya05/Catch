@@ -16,8 +16,8 @@ checks = {
     "editor save checks the free limit": "appState.savedLocations.count >= appState.freeSavedPlaceLimit" in editor,
     "notification state rejects free enable": 'presentProPaywall(context: "Notifications")' in app_state,
     "permission result cannot enable notifications for free": "let enabled = granted && isProMember" in app_state,
-    "Settings labels notifications as Pro": 'label: "Notifications", isPro: true' in settings,
-    "Settings blocks notification toggle for free": 'presentSettingsProPaywall(context: "Notifications")' in settings,
+    "Settings labels merged alerts as Pro": 'label: "Alerts & Notifications", isPro: true' in settings,
+    "Settings blocks merged alert toggle for free": 'presentSettingsProPaywall(context: "Leave alerts and notifications")' in settings,
     "onboarding blocks notification permission for free": 'appState.presentProPaywall(context: "Notifications")' in onboarding,
 }
 
