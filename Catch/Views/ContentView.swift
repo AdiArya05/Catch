@@ -191,7 +191,13 @@ struct ContentView: View {
     }
 
     private func popToHome() {
-        stopPath.removeAll()
+        showSearch = false
+        showSettings = false
+        locationEditorSheet = nil
+        showProfile = false
+        withAnimation(.smooth(duration: 0.28)) {
+            stopPath.removeAll()
+        }
     }
 
     private func handleDeepLink(_ url: URL) {
@@ -887,17 +893,33 @@ extension Color {
 
 struct CatchTabView: View {
     @State private var selectedTab = 0
+
+    private var tabSelection: Binding<Int> {
+        Binding(
+            get: { selectedTab },
+            set: { newTab in
+                let previousTab = selectedTab
+                selectedTab = newTab
+                Haptics.tap()
+                if newTab == 0 {
+                    NotificationCenter.default.post(name: .catchHomeSelected, object: nil)
+                    if previousTab == 0 {
+                        DispatchQueue.main.async {
+                            NotificationCenter.default.post(name: .catchHomeSelected, object: nil)
+                        }
+                    }
+                }
+            }
+        )
+    }
+
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: tabSelection) {
             Tab("Home", systemImage: "house.fill", value: 0) { ContentView().background(HomeTabObserver()) }
             Tab("Maps", systemImage: "map.fill", value: 1) { CatchMapView() }
             Tab("Settings", systemImage: "gearshape.fill", value: 2) { SettingsView(isTab: true) }
         }
         .tint(Color(hex: "5AC8FA"))
-        .onChange(of: selectedTab) { _, tab in
-            Haptics.tap()
-            if tab == 0 { NotificationCenter.default.post(name: .catchHomeSelected, object: nil) }
-        }
         .onOpenURL { url in
             guard url.scheme == "catch" else { return }
             switch url.host {
