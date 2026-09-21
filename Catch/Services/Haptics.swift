@@ -30,7 +30,39 @@ struct GlassCircleIconButton: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: Circle())
+        .catchInteractiveGlass(in: Circle())
         .accessibilityLabel(systemName == "xmark" ? "Close" : systemName)
+    }
+}
+
+
+extension View {
+    @ViewBuilder
+    func catchInteractiveGlass<S: Shape>(in shape: S) -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular.interactive(), in: shape)
+        } else {
+            self.background(.ultraThinMaterial, in: shape)
+                .overlay(shape.stroke(Color.white.opacity(0.10), lineWidth: 1))
+        }
+    }
+
+    @ViewBuilder
+    func catchRegularGlass<S: Shape>(in shape: S) -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular, in: shape)
+        } else {
+            self.background(.ultraThinMaterial, in: shape)
+                .overlay(shape.stroke(Color.white.opacity(0.10), lineWidth: 1))
+        }
+    }
+
+    @ViewBuilder
+    func catchInteractiveGlass() -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular.interactive())
+        } else {
+            self.background(.ultraThinMaterial)
+        }
     }
 }

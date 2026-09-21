@@ -285,7 +285,7 @@ private struct ProfileCloseButton: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: Circle())
+        .catchInteractiveGlass(in: Circle())
         .accessibilityLabel("Close")
     }
 }

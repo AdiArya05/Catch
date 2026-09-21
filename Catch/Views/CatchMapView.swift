@@ -78,7 +78,7 @@ struct CatchMapView: View {
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(.primary)
                 .padding(.horizontal, 18).frame(height: 52)
-                .glassEffect(.regular, in: Capsule())
+                .catchRegularGlass(in: Capsule())
                 .padding(.horizontal, 18)
                 .padding(.top, 10)
                 .padding(.bottom, 10)
@@ -89,7 +89,7 @@ struct CatchMapView: View {
                         .font(.system(size: 23, weight: .bold))
                         .foregroundStyle(.blue)
                         .frame(width: 54, height: 54)
-                        .glassEffect(.regular.interactive(), in: Circle())
+                        .catchInteractiveGlass(in: Circle())
                 }
                 .accessibilityLabel("Return to my location")
                 .padding(.trailing, 18)

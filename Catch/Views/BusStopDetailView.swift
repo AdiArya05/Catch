@@ -171,7 +171,7 @@ struct BusStopDetailView: View {
                 Image(systemName: savedLocation == nil ? "bookmark" : "bookmark.fill")
                     .font(.system(size: 19, weight: .bold)).frame(width: 44, height: 44)
             }
-            .glassEffect(.regular.interactive(), in: Circle())
+            .catchInteractiveGlass(in: Circle())
             .accessibilityLabel(savedLocation == nil ? "Save this bus stop" : "Unpin this bus stop")
             VStack(spacing: 3) {
                 Text(busStopName).font(.system(size: 21, weight: .bold)).lineLimit(2).minimumScaleFactor(0.8)
@@ -181,7 +181,7 @@ struct BusStopDetailView: View {
             Button(action: onBack) {
                 Image(systemName: "xmark").font(.system(size: 18, weight: .bold)).frame(width: 44, height: 44)
             }
-            .glassEffect(.regular.interactive(), in: Circle())
+            .catchInteractiveGlass(in: Circle())
             .accessibilityLabel("Close bus stop")
         }
         .padding(.horizontal, 18).padding(.top, 22).padding(.bottom, 14)
@@ -201,7 +201,7 @@ struct BusStopDetailView: View {
                         .foregroundColor(.primary)
                         .frame(width: 44, height: 44)
                 }
-                .glassEffect(.regular.interactive())
+                .catchInteractiveGlass()
                 .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -241,7 +241,7 @@ struct BusStopDetailView: View {
                         .rotationEffect(.degrees(isLoading ? 360 : 0))
                         .animation(isLoading ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isLoading)
                 }
-                .glassEffect(.regular.interactive())
+                .catchInteractiveGlass()
                 .clipShape(Circle())
             }
 

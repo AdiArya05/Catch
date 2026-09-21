@@ -252,7 +252,7 @@ struct ContentView: View {
                 .frame(height: 44)
                 .frame(maxWidth: .infinity)
             }
-            .glassEffect(.regular.interactive(), in: Capsule())
+            .catchInteractiveGlass(in: Capsule())
             .accessibilityLabel("Search bus stops")
             headerButton("arrow.clockwise", label: "Refresh arrivals") {
                 appState.refreshCatchability()
@@ -273,7 +273,7 @@ struct ContentView: View {
                 .font(.system(size: 17, weight: .semibold))
                 .frame(width: 44, height: 44)
         }
-        .glassEffect(.regular.interactive(), in: Circle())
+        .catchInteractiveGlass(in: Circle())
         .accessibilityLabel(label)
     }
 
