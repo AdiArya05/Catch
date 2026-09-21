@@ -141,9 +141,11 @@ final class LiveActivityManager {
     private static func staleDate(for state: CatchStopActivityAttributes.ContentState) -> Date {
         let freshnessLimit = state.updatedAt.addingTimeInterval(90)
         guard let arrival = state.services.first?.arrivalDate else { return freshnessLimit }
-        // Preserve the explicitly labelled estimate until that bus is due.
-        // Foreground refresh replaces it; after arrival the OS marks it stale.
-        return max(state.updatedAt, arrival.addingTimeInterval(30))
+        // Always give the Live Activity a short freshness window. When the
+        // selected bus is already arriving, using only arrival + 30 seconds can
+        // mark the activity stale immediately and make the Dynamic Island stop
+        // rendering before the next background refresh arrives.
+        return max(freshnessLimit, arrival.addingTimeInterval(30))
     }
 
     private static func timelineServices(from services: [BusService]) -> [CatchStopActivityAttributes.ServiceTiming] {
