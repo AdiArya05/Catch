@@ -157,7 +157,9 @@ struct ContentView: View {
                     if appState.isProMember && appState.isCatchItEnabled && (!appState.catchabilityMessage.isEmpty || appState.isLoadingCatchability) {
                         catchItCard
                     }
-                    savedLocationsSection
+                    if !appState.savedLocations.isEmpty {
+                        savedLocationsSection
+                    }
                     divider
                     nearbySection
                 }
@@ -498,7 +500,7 @@ struct ContentView: View {
         }
         .padding(.horizontal, 24)
         .padding(.top, 20)
-        .padding(.bottom, 24)
+        .padding(.bottom, 112)
     }
 
     private func openAddPlace(for nearby: NearbyStop) {
