@@ -6,11 +6,11 @@ The app contains a real Supabase REST client and a feedback board. It does not p
 1. Create or select a Supabase project. Run `feedback.sql` once in its SQL editor.
 2. Enable anonymous sign-ins under Authentication. This lets users submit without typing an email. Configure signup/IP rate limits appropriate for the launch. The SQL additionally limits each authenticated author to five submissions/hour; it does not prevent attackers from making multiple anonymous accounts. For a public launch, add CAPTCHA or app attestation and test its client flow.
 3. Fill in `Catch/FeedbackConfig.plist` with string keys `URL` (the HTTPS project URL) and `PublishableKey` (the client publishable/anon key). It is already included in the app’s Copy Bundle Resources phase. Never place a service-role key in the app.
-4. Build and test with two separate installs: submit from A, see it in the dashboard and A's board; ensure B cannot read it until `published` is true. Confirm that clients cannot update status/replies, publish posts, or read author IDs. Test duplicate retry, offline retry, and the five/hour limit.
+4. Build and test with two separate installs: submit from A and confirm it appears on both A and B. Confirm that clients cannot update status/replies/publication or read author IDs. Test duplicate retry, offline retry, and the five/hour limit.
 5. Update the privacy policy to disclose user-submitted feedback, anonymous account IDs, hosting, retention, and how to request removal before release.
 
 ## Review and reply
-Use Supabase Table Editor → feedback. Set `published` to true for reviewed messages to appear on everyone's board. Use `status` values `received`, `accepted`, `in progress`, or `completed`, and write `developer_response`. Keep sensitive/abusive reports unpublished. The app exposes no administrative credentials or update endpoints to users.
+New feedback is public by default. Use Supabase Table Editor → feedback to set `published` to false for sensitive, abusive, or otherwise inappropriate reports. Use `status` values `received`, `accepted`, `in progress`, or `completed`, and write `developer_response`. The app exposes no administrative credentials or update endpoints to users.
 
 Submission IDs make retries idempotent. Authentication refresh tokens are stored in iOS Keychain. Only a successful server response produces the thank-you confirmation. Failed submissions stay in the editor. The board shows at most the latest 100 visible posts, with date sorting. Voting is not implemented; this first version supports feedback and developer responses.
 

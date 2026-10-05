@@ -22,18 +22,38 @@ actor LTAService {
         var allStops: [BusStop] = []
         var skip = 0
         while true {
-            var components = URLComponents(string: "\(baseURL)/BusStops")!
-            components.queryItems = [URLQueryItem(name: "$skip", value: "\(skip)")]
-            var request = URLRequest(url: components.url!)
-            request.timeoutInterval = 18
-            request.setValue(apiKey, forHTTPHeaderField: "AccountKey")
-            let data = try await perform(request)
-            let response = try JSONDecoder().decode(BusStopResponse.self, from: data)
-            if response.value.isEmpty { break }
-            allStops.append(contentsOf: response.value)
-            skip += 500
+            let pageSkips = stride(from: skip, through: skip + 1_500, by: 500).map { $0 }
+            let pages = try await withThrowingTaskGroup(of: (Int, [BusStop]).self) { group in
+                for pageSkip in pageSkips {
+                    group.addTask { [self] in
+                        (pageSkip, try await fetchBusStopPage(skip: pageSkip))
+                    }
+                }
+
+                var loaded: [(Int, [BusStop])] = []
+                for try await page in group {
+                    loaded.append(page)
+                }
+                return loaded.sorted { $0.0 < $1.0 }
+            }
+
+            for (_, page) in pages {
+                allStops.append(contentsOf: page)
+            }
+            if pages.contains(where: { $0.1.count < 500 }) { break }
+            skip += 2_000
         }
         return allStops
+    }
+
+    private func fetchBusStopPage(skip: Int) async throws -> [BusStop] {
+        var components = URLComponents(string: "\(baseURL)/BusStops")!
+        components.queryItems = [URLQueryItem(name: "$skip", value: "\(skip)")]
+        var request = URLRequest(url: components.url!)
+        request.timeoutInterval = 12
+        request.setValue(apiKey, forHTTPHeaderField: "AccountKey")
+        let data = try await perform(request)
+        return try JSONDecoder().decode(BusStopResponse.self, from: data).value
     }
 
     func fetchBusRouteSummaries(serviceNo: String) async throws -> [BusRouteSummary] {

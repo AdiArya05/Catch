@@ -4,7 +4,7 @@ create table public.feedback (
   author_id uuid not null references auth.users(id) on delete cascade,
   body text not null check (char_length(trim(body)) between 10 and 4000),
   status text not null default 'received' check (status in ('received','accepted','in progress','completed')),
-  published boolean not null default false,
+  published boolean not null default true,
   developer_response text,
   created_at timestamptz not null default now()
 );
@@ -46,7 +46,7 @@ begin
   if (select count(*) from public.feedback where author_id = caller and created_at > now() - interval '1 hour') >= 5 then
     raise exception 'Please wait before sending more feedback';
   end if;
-  insert into public.feedback(id, author_id, body) values(request_id, caller, trim(message));
+  insert into public.feedback(id, author_id, body, published) values(request_id, caller, trim(message), true);
   return request_id;
 end;
 $$;

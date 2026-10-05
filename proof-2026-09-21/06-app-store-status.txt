@@ -1,0 +1,22 @@
+App Store Connect readiness status
+
+Code status:
+Ready in git at commit d765dad.
+The requested app-code behavior changes are implemented and committed.
+Release audit scripts pass.
+
+Environment status:
+Not ready to upload from this Mac yet.
+Xcode needs a connected/unlocked iPhone or working simulator runtime, and signing profiles must refresh for:
+• com.adityaarya.catch
+• com.adityaarya.catch.CatchWidgets
+• com.adityaarya.catch.CatchLiveActivity
+
+Next time you are on the laptop:
+1. Unlock the iPhone and connect it with cable or same Wi-Fi.
+2. Make sure Developer Mode is enabled on the iPhone.
+3. In Xcode, open Catch.xcodeproj.
+4. Select Adi’s iPhone as the run destination.
+5. Let Xcode refresh signing/provisioning for all three targets.
+6. Run once on the phone.
+7. Only if you tell me to upload, I will archive/upload the build to App Store Connect.

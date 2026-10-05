@@ -117,6 +117,9 @@ class AppState: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] location in
                 guard let self else { return }
+                if let location {
+                    CatchSiriTransitStore.saveLocation(location)
+                }
                 updateNearbyStops()
                 refreshCatchabilityIfNeeded(for: location)
                 completeLiveBoardTripIfReady()
@@ -142,6 +145,12 @@ class AppState: ObservableObject {
         isLoadingStops = true
         do {
             allBusStops = try await LTAService.shared.fetchAllBusStops()
+            CatchSiriTransitStore.saveBusStops(allBusStops)
+            await CatchSiriTransitStore.indexBusStops(allBusStops)
+            // Parameterized App Shortcut phrases are generated from the
+            // query's suggested entities. Refresh only after the catalog is
+            // persisted, otherwise Siri snapshots an empty/stale value list.
+            CatchAppShortcuts.updateAppShortcutParameters()
             hasLoadedStops = true
             updateNearbyStops()
             refreshCatchability()
@@ -520,6 +529,9 @@ class AppState: ObservableObject {
         )
 
         CatchWidgetStore.save(snapshot)
+        // The saved stop and bus combinations above are also the finite set
+        // Siri can embed in one-shot parameterized App Shortcut phrases.
+        CatchAppShortcuts.updateAppShortcutParameters()
         WidgetCenter.shared.reloadAllTimelines()
     }
 
@@ -618,8 +630,8 @@ class AppState: ObservableObject {
     }
 
     private func normalizedUserName(_ name: String) -> String {
-        let oldPlaceholderName = ["Ya", "sh"].joined()
-        return name.trimmingCharacters(in: .whitespacesAndNewlines) == oldPlaceholderName ? "Adi" : name
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "Adi" : trimmed
     }
 
     // MARK: - Dark Mode

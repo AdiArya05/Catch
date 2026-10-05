@@ -1,0 +1,8 @@
+d765dad Polish navigation and Live Board alerts
+ Catch/CatchApp.swift                      |  16 ++--
+ Catch/Services/AppState.swift             |  74 ++++++++++---------
+ Catch/Views/BusStopDetailView.swift       |  24 +-----
+ Catch/Views/ContentView.swift             | 119 ++++++++++++++++--------------
+ Catch/Views/SettingsView.swift            |  27 ++++---
+ CatchLiveActivity/CatchLiveActivity.swift |   2 +-
+ 6 files changed, 135 insertions(+), 127 deletions(-)

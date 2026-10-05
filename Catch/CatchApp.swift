@@ -6,6 +6,12 @@ struct CatchApp: App {
     @StateObject private var proStore = CatchProStore()
     @Environment(\.scenePhase) private var scenePhase
 
+    init() {
+        // Refresh the dynamic bus-and-stop phrases Siri snapshots from the
+        // app entity query whenever this build launches.
+        CatchAppShortcuts.updateAppShortcutParameters()
+    }
+
     var body: some Scene {
         WindowGroup {
             Group {

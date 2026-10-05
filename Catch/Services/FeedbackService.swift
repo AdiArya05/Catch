@@ -48,14 +48,14 @@ actor FeedbackService {
         let data: Data
         if found == errSecSuccess, let refresh {
             do {
-                data = try await request("auth/v1/token?grant_type=refresh_token", method: "POST", body: ["refresh_token": refresh])
+                data = try await request("auth/v1/token?grant_type=refresh_token", method: "POST", body: ["refresh_token": refresh], retryTransientFailures: true)
             } catch Failure.http(let status) where status == 400 || status == 401 {
                 // A revoked/expired anonymous session must not permanently brick feedback.
                 SecItemDelete(keychainQuery as CFDictionary)
-                data = try await request("auth/v1/signup", method: "POST", body: [:])
+                data = try await request("auth/v1/signup", method: "POST", body: [:], retryTransientFailures: true)
             }
         } else {
-            data = try await request("auth/v1/signup", method: "POST", body: [:])
+            data = try await request("auth/v1/signup", method: "POST", body: [:], retryTransientFailures: true)
         }
         let session = try JSONDecoder().decode(Session.self, from: data)
         let attributes: [String: Any] = [kSecValueData as String: Data(session.refresh_token.utf8), kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly]
@@ -67,36 +67,104 @@ actor FeedbackService {
         expiry = Date().addingTimeInterval(session.expires_in - 60)
         return session.access_token
     }
-    private func request(_ path: String, method: String = "GET", body: [String: Any]? = nil, bearer: String? = nil) async throws -> Data {
+    private func request(
+        _ path: String,
+        method: String = "GET",
+        body: [String: Any]? = nil,
+        bearer: String? = nil,
+        retryTransientFailures: Bool = false
+    ) async throws -> Data {
         guard let (base, key) = config,
               let url = URL(string: base.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/" + path) else { throw Failure.unavailable }
         var req = URLRequest(url: url); req.httpMethod = method; req.timeoutInterval = 20
         req.setValue(key, forHTTPHeaderField: "apikey")
         if let bearer { req.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization") }
         if let body { req.httpBody = try JSONSerialization.data(withJSONObject: body); req.setValue("application/json", forHTTPHeaderField: "Content-Type") }
-        let data: Data
-        let response: URLResponse
-        do { (data, response) = try await URLSession.shared.data(for: req) }
-        catch { throw Failure.server }
-        guard let http = response as? HTTPURLResponse else { throw Failure.server }
-        guard (200..<300).contains(http.statusCode) else { throw Failure.http(http.statusCode) }
-        return data
+        let attempts = retryTransientFailures ? 2 : 1
+        for attempt in 0..<attempts {
+            do {
+                let (data, response) = try await URLSession.shared.data(for: req)
+                guard let http = response as? HTTPURLResponse else { throw Failure.server }
+                if (200..<300).contains(http.statusCode) { return data }
+                if retryTransientFailures, attempt == 0, (500..<600).contains(http.statusCode) {
+                    try? await Task.sleep(for: .milliseconds(350))
+                    continue
+                }
+                throw Failure.http(http.statusCode)
+            } catch let failure as Failure {
+                if retryTransientFailures, attempt == 0, case .server = failure {
+                    try? await Task.sleep(for: .milliseconds(350))
+                    continue
+                }
+                throw failure
+            } catch {
+                if retryTransientFailures, attempt == 0 {
+                    try? await Task.sleep(for: .milliseconds(350))
+                    continue
+                }
+                throw Failure.server
+            }
+        }
+        throw Failure.server
+    }
+
+    private func authenticatedRequest(
+        _ path: String,
+        method: String = "GET",
+        body: [String: Any]? = nil,
+        retryTransientFailures: Bool = false
+    ) async throws -> Data {
+        var bearer = try await authenticate()
+        do {
+            return try await request(
+                path,
+                method: method,
+                body: body,
+                bearer: bearer,
+                retryTransientFailures: retryTransientFailures
+            )
+        } catch Failure.http(let status) where status == 401 {
+            // Access tokens can be revoked before their advertised expiry. Refresh the
+            // anonymous session once instead of leaving the board stuck until relaunch.
+            token = nil
+            expiry = .distantPast
+            bearer = try await authenticate()
+            return try await request(
+                path,
+                method: method,
+                body: body,
+                bearer: bearer,
+                retryTransientFailures: retryTransientFailures
+            )
+        }
     }
     func posts() async throws -> [FeedbackPost] {
-        let bearer = try await authenticate()
-        let data = try await request("rest/v1/rpc/feedback_feed", method: "POST", body: [:], bearer: bearer)
-        return try JSONDecoder().decode([FeedbackPost].self, from: data)
+        let data = try await authenticatedRequest(
+            "rest/v1/rpc/feedback_feed",
+            method: "POST",
+            body: [:],
+            retryTransientFailures: true
+        )
+        guard let posts = try? JSONDecoder().decode([FeedbackPost].self, from: data) else { throw Failure.server }
+        return posts
     }
     func submit(_ body: String, id: UUID) async throws {
         let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
         guard (10...4000).contains(trimmed.count) else { throw Failure.invalid }
-        let bearer = try await authenticate()
-        _ = try await request("rest/v1/rpc/submit_feedback", method: "POST", body: ["message": trimmed, "request_id": id.uuidString], bearer: bearer)
+        _ = try await authenticatedRequest(
+            "rest/v1/rpc/submit_feedback",
+            method: "POST",
+            body: ["message": trimmed, "request_id": id.uuidString],
+            retryTransientFailures: true
+        )
     }
 
     func toggleUpvote(postID: UUID) async throws {
-        let bearer = try await authenticate()
-        _ = try await request("rest/v1/rpc/toggle_feedback_upvote", method: "POST", body: ["feedback_id": postID.uuidString], bearer: bearer)
+        _ = try await authenticatedRequest(
+            "rest/v1/rpc/toggle_feedback_upvote",
+            method: "POST",
+            body: ["feedback_id": postID.uuidString]
+        )
     }
 
     func registerLiveActivity(

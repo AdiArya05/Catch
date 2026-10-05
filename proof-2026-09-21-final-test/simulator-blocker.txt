@@ -1,0 +1,14 @@
+Final simulator test status
+
+Requested: run Catch in iOS Simulator, interact with the app, capture actual app screenshots.
+
+Current Mac/Xcode blocker:
+• CoreSimulatorService crashes when booting/listing simulator devices.
+• simdiskimaged reports it cannot start or mount simulator runtime disk images.
+• xcodebuild sees only placeholder simulator destinations after the crash.
+• actool/ibtoold asset compilation fails because no simulator runtimes are available after the crash.
+
+I reset local Simulator devices and caches. The device list briefly recovered, then CoreSimulator crashed again when booting/building.
+
+Result:
+I cannot truthfully provide actual simulator screenshots from this Mac right now. The app code is committed and app-level checks pass, but Xcode/Simulator needs a reboot or runtime repair before interactive simulator testing and App Store archive/upload.

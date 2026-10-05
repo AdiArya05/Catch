@@ -3,7 +3,8 @@ import SwiftUI
 struct FeedbackBoardView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var posts: [FeedbackPost] = []
-    @State private var error: String?
+    @State private var loadError: String?
+    @State private var submissionError: String?
     @State private var loading = false
     @State private var composing = false
     @State private var draft = ""
@@ -20,8 +21,8 @@ struct FeedbackBoardView: View {
                     Text("Shape Catch together").font(.largeTitle.bold())
                     Text("Ideas, bugs, little things. Tell us what would make Catch better.").foregroundStyle(.secondary)
                     if loading && posts.isEmpty { ProgressView().frame(maxWidth: .infinity) }
-                    if let error {
-                        Text(error).foregroundStyle(.secondary)
+                    if let loadError {
+                        Text(loadError).foregroundStyle(.secondary)
                         Button("Try again") { Task { await load() } }
                     } else if !loading && posts.isEmpty {
                         ContentUnavailableView("Be the first to share", systemImage: "bubble.left.and.text.bubble.right", description: Text("Tap + to give feedback."))
@@ -68,7 +69,7 @@ struct FeedbackBoardView: View {
                 ToolbarItem(placement: .topBarTrailing) { Button("Reverse date order", systemImage: "arrow.up.arrow.down") { Haptics.tap(); withAnimation(.smooth) { newestFirst.toggle() } }.labelStyle(.iconOnly) }
             }
             .overlay(alignment: .bottomTrailing) {
-                Button { Haptics.tap(); composing = true } label: {
+                Button { Haptics.tap(); submissionError = nil; composing = true } label: {
                     Image(systemName: "plus").font(.system(size: 28, weight: .medium)).frame(width: 60, height: 60)
                 }.buttonStyle(.borderedProminent).buttonBorderShape(.circle).padding(24).accessibilityLabel("Give feedback")
             }
@@ -80,8 +81,8 @@ struct FeedbackBoardView: View {
                             TextEditor(text: $draft).frame(minHeight: 180).accessibilityLabel("Your feedback")
                             Text("\(draft.count)/4,000").font(.caption).foregroundStyle(.secondary)
                         }
-                        Text("No email needed. Feedback may appear publicly after review. Please leave out personal information.").font(.footnote).foregroundStyle(.secondary)
-                        if let error { Text(error).foregroundStyle(.red) }
+                        Text("No email needed. Feedback appears publicly on the board. Please leave out personal information.").font(.footnote).foregroundStyle(.secondary)
+                        if let submissionError { Text(submissionError).foregroundStyle(.red) }
                     }
                     .navigationTitle("Give feedback")
                     .toolbar {
@@ -93,21 +94,21 @@ struct FeedbackBoardView: View {
                     }.interactiveDismissDisabled(submitting)
                 }
             }
-            .alert("Thanks for your feedback", isPresented: $submitted) { Button("Done", role: .cancel) {} } message: { Text("It’s been received and is awaiting review.") }
+            .alert("Thanks for your feedback", isPresented: $submitted) { Button("Done", role: .cancel) {} } message: { Text("It’s live on the feedback board.") }
         }
     }
     @MainActor private func load() async {
         guard !loading else { return }; loading = true; defer { loading = false }
-        do { posts = try await FeedbackService.shared.posts(); error = nil }
-        catch { self.error = error.localizedDescription }
+        do { posts = try await FeedbackService.shared.posts(); loadError = nil }
+        catch { loadError = error.localizedDescription }
     }
     @MainActor private func send() async {
         guard !submitting else { return }; submitting = true; defer { submitting = false }
         do {
             try await FeedbackService.shared.submit(draft, id: requestID)
-            draft = ""; requestID = UUID(); error = nil; composing = false; submitted = true; Haptics.tap(.medium)
+            draft = ""; requestID = UUID(); submissionError = nil; composing = false; submitted = true; Haptics.tap(.medium)
             await load()
-        } catch { self.error = error.localizedDescription }
+        } catch { submissionError = error.localizedDescription }
     }
 
     @MainActor private func toggleUpvote(_ post: FeedbackPost) async {
@@ -119,7 +120,7 @@ struct FeedbackBoardView: View {
             Haptics.tap(.light)
             await load()
         } catch {
-            self.error = error.localizedDescription
+            loadError = error.localizedDescription
         }
     }
 }

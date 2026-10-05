@@ -14,6 +14,7 @@ struct CatchMapView: View {
     @State private var didCenter = false
     @State private var followsLocation = false
     @State private var clusters: [StopCluster] = []
+    @State private var mapViewportSize = CGSize(width: 390, height: 844)
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var sheetDetent: PresentationDetent = .medium
 
@@ -29,11 +30,7 @@ struct CatchMapView: View {
                 ForEach(clusters) { cluster in
                     Annotation("\(cluster.stops.count) bus stops", coordinate: cluster.coordinate) {
                         Button { zoomInto(cluster) } label: {
-                            Text(cluster.stops.count.formatted()).font(.system(size: 16, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white).padding(12).frame(minWidth: 46, minHeight: 46)
-                                .background(.blue.gradient, in: Circle())
-                                .overlay(Circle().stroke(.white.opacity(0.85), lineWidth: 2))
-                                .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+                            StopClusterMarker(count: cluster.stops.count)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("\(cluster.stops.count) bus stops. Zoom in")
@@ -58,6 +55,14 @@ struct CatchMapView: View {
             }
             .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .excludingAll))
             .mapControls { MapCompass(); MapScaleView() }
+            .onAppear {
+                mapViewportSize = geometry.size
+                updateVisibleStops()
+            }
+            .onChange(of: geometry.size) { _, size in
+                mapViewportSize = size
+                updateVisibleStops()
+            }
             .onMapCameraChange(frequency: .onEnd) { context in
                 visibleRegion = context.region
                 updateVisibleStops()
@@ -212,6 +217,40 @@ struct CatchMapView: View {
         }
     }
 
+    private struct StopClusterMarker: View {
+        let count: Int
+
+        private var diameter: CGFloat {
+            if count >= 100 { return 54 }
+            if count >= 25 { return 48 }
+            if count >= 10 { return 42 }
+            return 36
+        }
+
+        var body: some View {
+            ZStack {
+                Circle()
+                    .fill(.thickMaterial)
+                VStack(spacing: -1) {
+                    Text(count.formatted())
+                        .font(.system(size: count >= 100 ? 15 : 16, weight: .bold, design: .rounded))
+                    if count >= 50 {
+                        Text("stops")
+                            .font(.system(size: 8, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .foregroundStyle(.primary)
+                .minimumScaleFactor(0.7)
+                .padding(6)
+            }
+            .frame(width: diameter, height: diameter)
+            .overlay(Circle().stroke(Color.blue.opacity(0.82), lineWidth: 2))
+            .overlay(Circle().stroke(.white.opacity(0.28), lineWidth: 1).padding(3))
+            .shadow(color: .black.opacity(0.24), radius: 5, y: 3)
+        }
+    }
+
     private func zoomInto(_ cluster: StopCluster) {
         Haptics.tap()
         searchFocused = false
@@ -234,14 +273,24 @@ struct CatchMapView: View {
         let candidates = (searching ? searchResults : (stops ?? appState.allBusStops)).filter {
             searching || (abs($0.Latitude - center.latitude) < lat && abs($0.Longitude - center.longitude) < lon)
         }
-        // World-anchored, quantized cells keep groups stable during panning.
-        // Every candidate belongs to a marker or a counted cluster; none are discarded.
+        // Quantized world-anchored cells behave like MapKit's visual clustering:
+        // groups remain stable while panning and become progressively more detailed
+        // as the camera moves closer. The old fixed five-column grid produced dozens
+        // of equally prominent bubbles at island scale.
         let width = max(visibleRegion.span.longitudeDelta, visibleRegion.span.latitudeDelta * 0.5)
-        let cell = pow(2, floor(log2(max(width / 5, 0.000001))))
+        let markerSpacing: CGFloat
+        switch width {
+        case 0.12...: markerSpacing = 118
+        case 0.045...: markerSpacing = 96
+        case 0.016...: markerSpacing = 78
+        default: markerSpacing = 64
+        }
+        let rawCell = width * Double(markerSpacing / max(mapViewportSize.width, 1))
+        let cell = pow(2, ceil(log2(max(rawCell, 0.000001))))
         var groups: [String: [BusStop]] = [:]
         var singles: [BusStop] = []
         for stop in candidates {
-            if width < 0.008 || stop.id == selectedStop?.id { singles.append(stop); continue }
+            if searching || width < 0.007 || stop.id == selectedStop?.id { singles.append(stop); continue }
             let key = "\(cell):\(Int(floor(stop.Latitude / cell))):\(Int(floor(stop.Longitude / cell)))"
             groups[key, default: []].append(stop)
         }

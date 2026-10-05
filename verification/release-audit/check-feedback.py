@@ -30,7 +30,17 @@ path='rest/v1/feedback?select=id,body,status,developer_response,created_at&id=eq
 status,rows=call(path,token=a)
 check(status==200 and len(rows)==1 and rows[0]['status']=='received','author can read exactly one submitted report')
 status,rows=call(path,token=b)
-check(status==200 and rows==[],'other author cannot read pending report')
+check(status==200 and len(rows)==1,'other author can read public report')
+status,feed=call('rest/v1/rpc/feedback_feed','POST',{},b)
+visible=next((post for post in feed if post.get('id')==identifier),None) if isinstance(feed,list) else None
+check(status==200 and visible is not None,'public report appears in feedback feed')
+status,total=call('rest/v1/rpc/toggle_feedback_upvote','POST',{'feedback_id':identifier},b)
+check(status==200 and total==1,'other author can upvote public report')
+status,feed=call('rest/v1/rpc/feedback_feed','POST',{},b)
+visible=next((post for post in feed if post.get('id')==identifier),None) if isinstance(feed,list) else None
+check(status==200 and visible.get('upvote_count')==1 and visible.get('did_upvote') is True,'feed returns vote state')
+status,total=call('rest/v1/rpc/toggle_feedback_upvote','POST',{'feedback_id':identifier},b)
+check(status==200 and total==0,'second upvote toggle removes vote')
 status,_=call(path,'PATCH',{'status':'completed'},a)
 check(status>=400,'author cannot change moderation status')
 status,_=call('rest/v1/feedback?select=author_id&limit=1',token=a)

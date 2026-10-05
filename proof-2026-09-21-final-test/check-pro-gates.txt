@@ -1,0 +1,10 @@
+PASS: free saved-place limit is one
+PASS: AppState rejects excess saved places
+PASS: home Add checks the free limit
+PASS: header Add uses the gated path
+PASS: editor save checks the free limit
+PASS: notification state rejects free enable
+PASS: permission result cannot enable notifications for free
+PASS: Settings labels merged alerts as Pro
+PASS: Settings blocks merged alert toggle for free
+PASS: onboarding blocks notification permission for free

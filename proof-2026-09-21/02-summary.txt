@@ -1,0 +1,19 @@
+Catch update proof — 2026-09-21
+
+Committed change:
+d765dad Polish navigation and Live Board alerts
+
+Implemented:
+• Bus stop pages now use NavigationStack path navigation.
+• Native iOS edge-swipe back is restored while keeping Catch's custom header.
+• Tapping Home clears the stop page path and returns to Home.
+• Notifications are only for the active Live Board bus.
+• Can I Catch It no longer sends leave-now notifications.
+• Live Board notification is scheduled only when the app backgrounds.
+• Active foreground refresh continues updating Live Activity / Dynamic Island every minute.
+• Refresh failure preserves existing app data and shows calmer retry text.
+• Settings footer has the Catch app icon again.
+• Live Activity Preview macros are limited to simulator builds.
+
+Policy you requested:
+I will not upload a new build in Xcode/App Store Connect unless you explicitly tell me to upload it.

@@ -1,0 +1,22 @@
+Release audit checks run after the changes:
+
+PASS: free saved-place limit is one
+PASS: AppState rejects excess saved places
+PASS: home Add checks the free limit
+PASS: header Add uses the gated path
+PASS: editor save checks the free limit
+PASS: notification state rejects free enable
+PASS: permission result cannot enable notifications for free
+PASS: Settings labels merged alerts as Pro
+PASS: Settings blocks merged alert toggle for free
+PASS: onboarding blocks notification permission for free
+PASS: newest concurrent start wins; only one activity exists
+PASS: stop cancels a suspended start
+PASS: no remote-start trip, no stale/inaccurate location trip, near-arrival-departure counts once, departure without arrival does not count
+PASS: git diff --check
+
+Build environment status:
+• Xcode currently sees only the Mac, not Adi's iPhone.
+• Xcode reports missing provisioning profiles for the app, widget, and Live Activity extension.
+• CoreSimulator/simdiskimaged is failing and reports no available simulator runtimes.
+• This blocks a truthful “ready to upload” claim until the Mac/Xcode environment is repaired and signed.
