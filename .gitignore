@@ -18,3 +18,10 @@ DerivedData/
 
 # Supabase CLI local state
 supabase/.temp/
+
+# Local credentials: never commit real API keys
+Secrets.xcconfig
+*.secrets.xcconfig
+.env
+.env.*
+!.env.example
