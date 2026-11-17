@@ -100,7 +100,7 @@ The Xcode project currently targets **iOS 18.0 or later**.
 1. Clone the repository and open `Catch.xcodeproj` in Xcode on macOS.
 2. Select the **Catch** scheme.
 3. Configure your own signing team, bundle identifiers, App Group and relevant capabilities for the app and extension targets.
-4. Review service configuration before running. Use your own authorised LTA DataMall access; do not rely on credentials present in a public repository.
+4. Configure your own authorised LTA DataMall access privately for both the app and widget. See [local LTA configuration and credential safety](docs/LTA_CONFIGURATION.md). Do not commit real credentials.
 5. For feedback, configure your own Supabase project and client configuration. See [backend setup](backend/README.md).
 6. Build and run on a compatible simulator or iPhone. Use a physical device to validate location, notifications and system-surface behaviour.
 
