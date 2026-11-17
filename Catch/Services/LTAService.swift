@@ -2,7 +2,18 @@ import Foundation
 
 actor LTAService {
     static let shared = LTAService()
-    private let apiKey = "8SlaHtOZRzyfeVqOOJPgaQ=="
+    // Configure locally via the scheme environment or a private build setting.
+    // Client-side configuration is not a secret store; production should use a backend proxy.
+    private func configuredAPIKey() throws -> String {
+        let value = ProcessInfo.processInfo.environment["LTA_API_KEY"]
+            ?? (Bundle.main.object(forInfoDictionaryKey: "LTA_API_KEY") as? String)
+            ?? ""
+        let key = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !key.isEmpty, !key.hasPrefix("$(") else {
+            throw LTAServiceError.missingAPIKey
+        }
+        return key
+    }
     private let baseURL = "https://datamall2.mytransport.sg/ltaodataservice"
     private var cachedBusRouteSummaries: [BusRouteSummary]?
 
@@ -13,7 +24,7 @@ actor LTAService {
         components.queryItems = [URLQueryItem(name: "BusStopCode", value: busStopCode)]
         var request = URLRequest(url: components.url!)
         request.timeoutInterval = 12
-        request.setValue(apiKey, forHTTPHeaderField: "AccountKey")
+        request.setValue(try configuredAPIKey(), forHTTPHeaderField: "AccountKey")
         let data = try await perform(request)
         return try JSONDecoder().decode(BusArrivalResponse.self, from: data)
     }
@@ -51,7 +62,7 @@ actor LTAService {
         components.queryItems = [URLQueryItem(name: "$skip", value: "\(skip)")]
         var request = URLRequest(url: components.url!)
         request.timeoutInterval = 12
-        request.setValue(apiKey, forHTTPHeaderField: "AccountKey")
+        request.setValue(try configuredAPIKey(), forHTTPHeaderField: "AccountKey")
         let data = try await perform(request)
         return try JSONDecoder().decode(BusStopResponse.self, from: data).value
     }
@@ -68,7 +79,7 @@ actor LTAService {
                 components.queryItems = [URLQueryItem(name: "$skip", value: "\(skip)")]
                 var request = URLRequest(url: components.url!)
                 request.timeoutInterval = 18
-                request.setValue(apiKey, forHTTPHeaderField: "AccountKey")
+                request.setValue(try configuredAPIKey(), forHTTPHeaderField: "AccountKey")
                 let data = try await perform(request)
                 let response = try JSONDecoder().decode(BusRouteSummaryResponse.self, from: data)
                 if response.value.isEmpty { break }
@@ -96,4 +107,5 @@ actor LTAService {
 
 enum LTAServiceError: Error {
     case invalidResponse
+    case missingAPIKey
 }
