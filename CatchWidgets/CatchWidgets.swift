@@ -77,7 +77,15 @@ struct CatchWidgetRefreshIntent: AppIntent {
 
         var request = URLRequest(url: url)
         request.timeoutInterval = 12
-        request.setValue("8SlaHtOZRzyfeVqOOJPgaQ==", forHTTPHeaderField: "AccountKey")
+        let configuredKey = ProcessInfo.processInfo.environment["LTA_API_KEY"]
+            ?? (Bundle.main.object(forInfoDictionaryKey: "LTA_API_KEY") as? String)
+            ?? ""
+        let apiKey = configuredKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !apiKey.isEmpty, !apiKey.hasPrefix("$(") else {
+            throw NSError(domain: "Catch.LTAConfiguration", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "LTA API access is not configured."])
+        }
+        request.setValue(apiKey, forHTTPHeaderField: "AccountKey")
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             return .result()
